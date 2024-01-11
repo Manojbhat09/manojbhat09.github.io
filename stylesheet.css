@@ -147,7 +147,7 @@ span.highlight {
 
 .update-date {
   font-weight: bold;
-  color: #0056b3; /* Adjust text color as needed */
+  color: #aed2f8; /* Adjust text color as needed */
 }
 
 .highlight {
@@ -250,4 +250,140 @@ span.highlight {
   border: none;
   border-top: 1px solid #333; /* Adjust color to match the style in the image */
   margin: 10px 0; /* Adjust spacing around the line */
+}
+
+/* Define custom properties for theme colors, font sizes, and spacing */
+:root {
+  --primary-color: #1772d0;
+  --hover-color: #f09228;
+  --text-color: #333;
+  --background-color: #f2f2f2;
+  --border-color: #ccc;
+  --font-size-normal: 0.875rem; /* 14px */
+  --font-size-large: 1.375rem; /* 22px */
+  --font-size-xlarge: 2rem; /* 32px */
+  --spacing-small: 0.625rem; /* 10px */
+  --spacing-medium: 1.25rem; /* 20px */
+  --spacing-large: 2rem; /* 32px */
+}
+
+body {
+  font-family: 'Lato', Verdana, Helvetica, sans-serif;
+  font-size: var(--font-size-normal);
+  color: var(--text-color);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  background-color: #fff;
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+a:focus,
+a:hover {
+  color: var(--hover-color);
+  text-decoration: underline; /* Add an underline on hover for better UX */
+}
+
+/* Use Flexbox for layout */
+#workExperienceContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-medium);
+}
+
+/* Enhance the visual hierarchy */
+h2 {
+  font-size: var(--font-size-large);
+  color: var(--primary-color);
+  padding-bottom: var(--spacing-small);
+}
+
+.name {
+  font-size: var(--font-size-xlarge);
+  padding-top: var(--spacing-large);
+}
+
+/* Improve the work experience section */
+.work-experience-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border-color);
+  padding: var(--spacing-medium) 0;
+}
+
+.company-logo {
+  flex-shrink: 0;
+  width: 100px; 
+  height: 100px; 
+  margin-right: var(--spacing-medium);
+  border-radius: 10%; /* This will maintain the circular shape *
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+}
+
+.work-experience-details {
+  flex-grow: 1;
+}
+
+/* Ensure that the design is responsive */
+@media (max-width: 768px) {
+  .work-experience-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .company-logo {
+    margin-bottom: var(--spacing-small);
+  }
+
+  h2, .name {
+    text-align: center;
+  }
+}
+
+/* Add transitions for interactive elements */
+a, .fade, .two {
+  transition: all 0.3s ease;
+}
+
+/* Add more styles as needed... */
+
+/* Target the table rows within the work experience container */
+#workExperienceContainer tr {
+  /* You can reduce line height to make the table more compact */
+  line-height: 1.2;
+}
+
+/* Target the table cells within the work experience container */
+#workExperienceContainer td {
+  /* Decrease padding for a more compact look */
+  padding: 0.5rem; /* Adjust padding as needed, previously might have been higher */
+  /* Add additional styling to make it visually appealing */
+  border-bottom: 1px solid var(--border-color); /* Add a subtle line between rows */
+  vertical-align: top; /* Align content to the top of the cell */
+}
+
+/* If you have header cells (th), style them as well */
+#workExperienceContainer th {
+  padding: 0.5rem;
+  text-align: left;
+  background-color: var(--background-color); /* A light background color for header cells */
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--border-color); /* A slightly thicker bottom border for headers */
+}
+
+
+/* Assuming each update item is around 60px in height, including padding and borders */
+#updatesContainer {
+  max-height: 80px; /* Height for 3 items */
+  overflow-y: auto;
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0;
 }
