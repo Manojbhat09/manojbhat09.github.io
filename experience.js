@@ -52,10 +52,21 @@ const workExperiences = [
         logo: "images/cmu_logo.png",
         role: "Research Assistant",
         department: "",
-        duration: "Date Started – May/2’20",
+        duration: "Oct/2'18 – May/2’20",
         achievements: [
           "Engaged in research and development in robotics and computer vision.",
           "Contributed to several high-impact academic research projects."
+        ]
+      },
+      {
+        company: "Google",
+        logo: "images/google_logo.jpg",
+        role: "Intern",
+        department: "",
+        duration: "May 2'17 – Sept/2’17",
+        achievements: [
+          "Data Science Intern to use CERN dataset and give insights on distributions of quarks",
+          "Developed C++ frameworks for Google X collaboration in Project Wing drone delivery"
         ]
       },
     // ... other experiences
