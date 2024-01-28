@@ -1,0 +1,441 @@
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\usepackage{hyperref}
+\usepackage{tabularx}
+\usepackage{geometry}
+\usepackage{multicol}
+\usepackage{xcolor}
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm} % Set the page margins
+\setlength{\parindent}{0pt} % Removes paragraph indentation
+\linespread{1.01} % Adjust line spacing as necessary
+
+
+% Define the publication command
+\newcommand{\publication}[7]{
+  \begin{itemize}[leftmargin=*,labelsep=0.5em]
+    \item[--] \textbf{#1} \\
+    #2 \\
+    \textit{Conference:} #3, #4. \\
+    \textit{Description:} #5 \\
+    \textit{Links:} \href{#6}{#7}
+  \end{itemize}
+}
+
+% Command to print a publication if its boolean is true
+\newcommand{\printPublication}[2]{
+  \ifbool{#1}{
+    \item[--] #2
+  }{}
+}
+
+% Command to start the multicolumn list
+\newcommand{\startPublicationList}{
+    \vspace{-10pt}
+    \begin{itemize}[leftmargin=*,labelsep=0.5em]
+    \begin{multicols}{2}
+}
+
+% Command to end the multicolumn list
+\renewcommand{\endPublicationList}{
+    \end{multicols}
+    \end{itemize}
+    \vspace{-10pt}
+}
+\newcommand{\endPublicationList}{
+    \end{multicols}
+    \end{itemize}
+    \vspace{-10pt}
+}
+
+
+\newbool{pubCurbScan}
+\newbool{pubAdvancedDriverAssistance}
+\newbool{pubDensityAdaptiveSampling}
+\newbool{pubDiverseTrajectoryForecasting}
+\newbool{pubFastPolarAttentive}
+\newbool{pubSmartAnnotation}
+\newbool{pubTrajformer}
+
+% Set to 'true' to include the publication, 'false' to exclude it
+\booltrue{pubCurbScan}
+\booltrue{pubAdvancedDriverAssistance}
+\boolfalse{pubDensityAdaptiveSampling}
+\booltrue{pubDiverseTrajectoryForecasting}
+\boolfalse{pubFastPolarAttentive}
+\boolfalse{pubSmartAnnotation}
+\boolfalse{pubTrajformer}
+
+% Define colors
+\definecolor{linkcolor}{rgb}{0, 0.2, 0.6}
+\definecolor{darkblue}{rgb}{0.0, 0.0, 0.3}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks = true,
+    linkcolor = {linkcolor},
+    urlcolor = {linkcolor}
+}
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-7pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-2pt}]
+
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 }
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+\item
+    \begin{tabular*}{0.5\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \multicolumn{2}{ }{\textbf{#1}}  { \space #2} 
+      % \textit{\small#3} & \textit{\small #4} \\
+      \multicolumn{2}{ }{\parbox{0.8\linewidth}{\textit{\small#3}} }{\parbox{0.96\linewidth}{\textit{\small #4}}}
+    \end{tabular*}
+}
+% Define the resumeSubheading command to accept four parameters
+\newcommand{\resumeSubheadingexp}[4]{
+
+  \item
+    \begin{tabular*}{0.5\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} &\\  #2 
+      \multicolumn{2}{ }{\parbox{0.8\linewidth}{\textit{\small#3}} }{\parbox{0.96\linewidth}{\textit{\small #4}}}
+    \end{tabular*}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-10pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{0pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-8pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}\vspace{-5pt}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+
+
+
+% Define the environment for the resume items list
+\newenvironment{resumeItemList}{
+  \begin{itemize}[leftmargin=*,labelsep=0em]
+}{
+  \end{itemize}
+}
+
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge \scshape Manoj Bhat} \\ \vspace{1pt}
+    \small 412-320-9716 $|$ \href{mailto:manojbhat.research@gmail.com}{\underline{manojbhat.research@gmail.com}} $|$ 
+    \href{https://linkedin.com/in/bhat-manoj}{\underline{linkedin.com/in/bhat-manoj}} $|$
+    \href{https://github.com/Manojbhat09}{\underline{github.com/Manojbhat09}} $|$
+    \href{https://manojbhatwebsite.com}{\underline{Personal Website}}
+\end{center}
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Carnegie Mellon University (CMU)}{Pittsburgh, PA} 
+      {Master of Science in ME: Research in Robotics \& Vision}{May 2020}
+      \resumeItemListStart
+        \resumeItem{GPA: 3.8/4.0}
+        \resumeItem{Courses: SLAM, Intro to Deep learning, Multimodal Machine Learning, Visual Recognition and Learning, Parallel Computing Architecture}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Manipal Institute of Technology (MiT)}{India}
+      {Bachelor of Science in Mechanical – Minor in Mechatronics}{May 2018}
+      \resumeItemListStart
+        \resumeItem{GPA: 9.55/10.0}
+        \resumeItem{Courses: ML and AI for Engineers, Linear Control Systems, Computer Vision, Bayesian-statistics, Computer Systems}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+
+
+% [Add Patents and Publications section if applicable]
+%-----------EXPERIENCE-----------
+\section{Experience}
+  \resumeSubHeadingListStart
+
+    \resumeSubheadingexp
+      {Rivian | Offboard Planning, Machine Learning Engineer II} {}
+      {Planning \& Simulation}{Apr 2023 – Present}
+      \resumeItemListStart
+        \resumeItem{Spearheaded the implementation of Wayformer, a state-of-the-art motion forecasting model, for offboard planning in AV.}
+        \resumeItem{Worked with Neural Rendering Fields and Diffusion models for scenario dataset auto-generation.}
+        \resumeItem{Utilized GPT4V for internal tooling and faster prototyping.}
+      \resumeItemListEnd
+
+    \resumeSubheadingexp
+      {Amazon Robotics | Scout, Machine Learning Engineer II}{}
+      {Perception \& Simulation}{Oct 2021 – Feb 2023}
+      \resumeItemListStart
+        \resumeItem{Lead design of AWS distributed system for scaling machine learning models in PyTorch \& VDDS stack.}
+        \resumeItem{Improved model mAP/mIOU metrics through redesign for robot pose matching in simulator.}
+      \resumeItemListEnd
+
+    \resumeSubheadingexp
+      {Qualcomm Drive | Research Software Engineer}{}
+      {3D Lidar Detection, Behavior Planning \& Deep Learning}{Sept 2020 – Oct 2021}
+      \resumeItemListStart
+        \resumeItem{Implemented Lane Graphs \& VectorNet focusing on Lane association, trajectory prediction, and vehicle behavior.}
+        \resumeItem{Developed 3D Transformer Object detection ML pipeline, improving overall performance and reducing latency.}
+      \resumeItemListEnd
+
+    \resumeSubheadingexp
+      {Safe AI Lab | Software Engineer Robotics}{}
+      {AI \& AV Research}{Aug 2018 – May 2020}
+      \resumeItemListStart
+        \resumeItem{Developed Neural network with CRF-CNN for 2D \& 3D Object detection in sensor fused data.}
+        \resumeItem{Worked on Lidar-camera calibration and developed simulation scenarios in Carla Simulator.}
+      \resumeItemListEnd
+
+    \resumeSubheadingexp
+      {Robert Bosch Gmbh | Software Engineer}{}
+      {Computer Vision}{May 2019 – Sept 2019}
+      \resumeItemListStart
+        \resumeItem{Evaluated PointCNN-XCRF for region proposal in segmentation and denoising techniques.}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+  %-----------PUBLICATIONS-----------
+
+\section*{Publications \& Patents}
+
+% \startPublicationList
+% \printPublication{pubCurbScan}{
+% \publication
+% {CurbScan: Curb Detection and Tracking Using Multi-Sensor Fusion}
+% {Iljoo Baek, Tzu-Chieh Tai, Manoj Mohan Bhat, Karun Ellango, Tarang Shah, Kamal Fuseini, Ragunathan (Raj) Rajkumar}
+% {arXiv, 2020}
+% {Approach for curb detection and tracking in urban environments by fusing data from sparse LiDAR, a mono camera, and ultrasonic sensors. Demonstrates over 90\% accuracy in various environments}
+% {\href{https://www.youtube.com/watch?v=w5MwsdWhcy4}}{Demo Video 1}
+% }
+
+
+\startPublicationList
+\printPublication{pubCurbScan}{
+  \publication
+    {CurbScan: Curb Detection and Tracking Using Multi-Sensor Fusion}
+    {Iljoo Baek, Tzu-Chieh Tai, Manoj Mohan Bhat, Karun Ellango, Tarang Shah, Kamal Fuseini, Ragunathan (Raj) Rajkumar}
+    {arXiv}
+    {2020}
+    {Approach for curb detection and tracking in urban environments by fusing data from sparse LiDAR, a mono camera, and ultrasonic sensors. Demonstrates over 90\% accuracy in various environments.}
+    {https://www.youtube.com/watch?v=w5MwsdWhcy4}{Demo Video 1}
+}
+\endPublicationList
+
+\startPublicationList
+\printPublication{pubAdvancedDriverAssistance}{
+  \publication
+    {Advanced Driver Assistance Strategies for a Single-Vehicle Overtaking a Platoon on the Two-Lane Two-Way Road}
+    {Junjie Chen, Manoj Bhat, Shiyan Jiang, Ding Zhao}
+    {IEEE Access}
+    {2020}
+    {Presents a framework for ADAS tailored for single-vehicle overtaking a platoon on two-lane two-way roads.}
+    {https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9072403}{IEEE Access Link}
+}
+\endPublicationList
+
+\startPublicationList
+\printPublication{pubDiverseTrajectoryForecasting}{
+  \publication
+    {Diverse and Admissible Trajectory Forecasting through Multimodal Context Understanding}
+    {Seong Hyeon Park, Gyubok Lee, Manoj Bhat, Jimin Seo, Minseok Kang, Jonathan Francis, Ashwin Jadhav, Paul Pu Liang, Louis-Philippe Morency}
+    {arXiv}
+    {2020}
+    {Addresses multi-agent trajectory forecasting in autonomous driving by synthesizing multiple input signals.}
+    {https://github.com/kami93/CMU-DATF}{Project Repository}
+}
+\endPublicationList
+
+
+% \begin{itemize}
+% \begin{multicols}{2}
+% \publicationItem{\textbf{Advanced Driver Assistance Strategies for a Single-Vehicle Overtaking a Platoon on the Two-Lane Two-Way Road}\\
+%     Junjie Chen, Manoj Bhat, Shiyan Jiang, Ding Zhao\\
+%     \textit{Conference:} IEEE Access, 2020.\\
+%     \textit{Description:} Presents a framework for ADAS tailored for single-vehicle overtaking a platoon on two-lane two-way roads.\\
+%     \href{https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9072403}{IEEE Access Link}}
+% \end{multicols}
+% \end{itemize}
+% \vspace{-10pt}
+
+
+
+% \begin{itemize}
+% \begin{multicols}{2}
+% \publicationItem{
+%     \textbf{Density-adaptive Sampling for Heterogeneous Point Cloud Object Segmentation in Autonomous Vehicle Applications}\\
+%     Hasan Asy’ari Arief, Mansur Maturidi Arief, Manoj Bhat, Ulf Geir Indahl, Hvard Tveite, Ding Zhao\\
+%     \textit{Conference:} Not specified, Year not specified.\\
+%     \textit{Description:} Introduces a density-adaptive sampling method to improve classification accuracy in point cloud data for autonomous vehicles.\\
+%     \href{}{CVPRW Link}
+% }
+
+% \end{multicols}
+% \end{itemize}
+% \vspace{-10pt}
+
+
+% \begin{itemize}
+% \begin{multicols}{2}
+% \publicationItem{
+%     \textbf{Diverse and Admissible Trajectory Forecasting through Multimodal Context Understanding}\\
+%     Seong Hyeon Park, Gyubok Lee, Manoj Bhat, Jimin Seo, Minseok Kang, Jonathan Francis, Ashwin Jadhav, Paul Pu Liang, Louis-Philippe Morency\\
+%     \textit{Conference:} arXiv, 2020.\\
+%     \textit{Description:} Addresses multi-agent trajectory forecasting in autonomous driving by synthesizing multiple input signals.\\
+%     \href{https://github.com/kami93/CMU-DATF}{Project Repository}
+% }
+% \end{multicols}
+% \end{itemize}
+% \vspace{-10pt}
+
+
+% \begin{itemize}
+% \begin{multicols}{2}
+% \publicationItem{
+%     \textbf{Fast Polar Attentive 3D Object Detection on LiDAR Point Clouds}\\
+%     Manoj Bhat, Steve Han, Fatih Porikli\\
+%     \textit{Conference:} NeurIPS, 2021.\\
+%     \textit{Description:} Introduces a streaming detector for 3D object detection using LiDAR point clouds, emphasizing reduced computational load and latency.\\
+%     \href{}{NeurIPS Link}
+% }
+% \end{multicols}
+% \end{itemize}
+% \vspace{-10pt}
+
+
+% \begin{itemize}
+% \begin{multicols}{2}
+% \publicationItem{
+%     \textbf{Smart Annotation and Evaluation Tools for Point Cloud Data}\\
+%     Hasan Asy’ari Arief, Mansur Arief, Guilin Zhang, Zuxin Liu, Manoj Bhat, Ulf Geir Indahl, Håvard Tveite, Ding Zhao\\
+%     \textit{Conference:} IEEE Access, 2020.\\
+%     \textit{Description:} Presents SAnE, a semiautomatic annotation tool for labeling point cloud data, emphasizing high-quality and time-efficient annotation.\\
+%     \href{https://ieeexplore.ieee.org/document/9081590}{IEEE Access Link}
+% }
+
+% \end{multicols}
+% \end{itemize}
+% \vspace{-10pt}
+
+
+% \begin{itemize}
+% \begin{multicols}{2}
+% \publicationItem{
+%     \textbf{Trajformer: Trajectory Prediction with Local Self-Attentive Contexts for Autonomous Driving}\\
+%     Manoj Bhat, Jonathan Francis, Jean Oh\\
+%     \textit{Conference:} NeurIPS, 2020.\\
+%     \textit{Description:} Introduces Trajformer, a self-attention-based encoding structure for improving trajectory prediction in autonomous driving.\\
+%     \href{https://github.com/Manojbhat09/Trajformer}{Project Repository}
+% }
+
+% \end{multicols}
+% \end{itemize}
+% \vspace{-10pt}
+
+
+%-----------PROJECTS-----------
+\section{Projects}
+  \resumeSubHeadingListStart
+    \resumeProjectHeading
+      {\textbf{Various Projects at CMU, Safe AI Lab, and Others}}{}
+      \resumeItemListStart
+        \resumeItem{Developed methodologies for agent trajectory prediction, real-time data processing, and 3D reconstruction.}
+        \resumeItem{Participated in competitions and research contributing to advancements in computer vision and machine learning.}
+        \resumeItem{Implemented Lane Graphs \& VectorNet focusing on lane association, trajectory prediction, and vehicle behavior.}
+        \resumeItem{Worked on state estimation problems (Extended Kalman filter) for tracking the curb and object location using 3D geometry.}
+        \resumeItem{Developed and Optimized Neural networks with CRF-CNN for 2D \& 3D Object detection in sensor fused data.}
+        \resumeItem{Evaluated PointCNN-XCRF for region proposal and denoising in Segmentation.}
+        \resumeItem{Led a team in mechatronics system design for developing a Shipbot robot, focusing on real-time data processing and visual odometry.}
+        \resumeItem{Implemented DDPG Reinforcement learning framework with RL-GAN-Net \& PCN for 3D completion and deployed in an annotation tool.}
+        \resumeItem{Developed Stereo Imagery based Dense 3D reconstruction and algorithms for vanishing point estimate.}
+        \resumeItem{Participated in Kaggle face classification and verification assignment, ranking in the top 5\% of participating teams.}
+        \resumeItem{Researched and implemented prototypes for Advanced Driver Assistance Strategies for vehicular overtaking scenarios.}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+
+
+%-----------SKILLS-----------
+\section{Technical Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \textbf{Programming Languages}{: C++, Python, Octave, SQL} \\
+     \textbf{Frameworks \& Libraries}{: PyTorch, TensorFlow, Keras, ROS, PCL, MongoDB, Redshift, CUDA, OpenGL, Open3D} \\
+     \textbf{Tools}{: Git, AWS \& S3, PySpark, Docker, Kubernetes, GDB} \\
+     \textbf{Others}{: Deep Learning, Machine Learning, Computer Vision, Robotics}
+    }}
+ \end{itemize}
+
+
+\section*{Miscellaneous}
+\noindent
+\begin{tabularx}{\textwidth}{@{}X r@{}}
+\textbf{Reviewer} & ICRA 2022, ICGVIP 2018, CVPR 2022(OmniCV workshop) \\
+\textbf{Teaching Assistant} & \\
+Digital Image Processing - IIIT-H & July 2016-December 2016 \\
+Digital Signal Processing - IIIT-H & January 2017-April 2017 \\
+\textbf{Awards} & \\
+Dean's Academic Merit List, IIIT-H & November 2014 - November 2017 \\
+Dean's Research Merit List, IIIT-H & November 2017 \\
+\end{tabularx}
+
+
+\end{document}
