@@ -1,0 +1,195 @@
+{
+  "GPT-2 Q3_K_M": [
+    {
+      "idx": "1",
+      "label": "jargon-seed run 1",
+      "raw": "The Kestrel",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "2",
+      "label": "jargon-seed run 2",
+      "raw": "Tune",
+      "pass": false,
+      "reason": "need-2-words"
+    },
+    {
+      "idx": "3",
+      "label": "jargon-seed run 3",
+      "raw": "The Shrink",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "4",
+      "label": "jargon-seed run 4",
+      "raw": "S.M.A.R.O.L.I.S.T.",
+      "pass": false,
+      "reason": "need-2-words"
+    },
+    {
+      "idx": "5",
+      "label": "jargon-seed run 5",
+      "raw": "The Dimensional Stretching",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "6",
+      "label": "jargon-seed run 6",
+      "raw": "Tensorflow",
+      "pass": false,
+      "reason": "need-2-words"
+    },
+    {
+      "idx": "7",
+      "label": "jargon-seed run 7",
+      "raw": "The Riddle of Time",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "8",
+      "label": "jargon-seed run 8",
+      "raw": "Boldness",
+      "pass": false,
+      "reason": "need-2-words"
+    },
+    {
+      "idx": "9",
+      "label": "jargon-seed run 9",
+      "raw": "The Maven",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "10",
+      "label": "jargon-seed run 10",
+      "raw": "The Kernel and the D-Bus",
+      "pass": false,
+      "reason": "too-many-words"
+    },
+    {
+      "idx": "11",
+      "label": "AV-jargon run 1",
+      "raw": "Bump",
+      "pass": false,
+      "reason": "need-2-words"
+    },
+    {
+      "idx": "12",
+      "label": "AV-jargon run 2",
+      "raw": "I Am the Man",
+      "pass": false,
+      "reason": "boring"
+    },
+    {
+      "idx": "13",
+      "label": "AV-jargon run 3",
+      "raw": "Tail Analysis",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "14",
+      "label": "AV-jargon run 4",
+      "raw": "Aware",
+      "pass": false,
+      "reason": "need-2-words"
+    },
+    {
+      "idx": "15",
+      "label": "AV-jargon run 5",
+      "raw": "I-V",
+      "pass": false,
+      "reason": "need-2-words"
+    }
+  ],
+  "SmolLM2 Q3_K_L": [
+    {
+      "idx": "1",
+      "label": "examples: Gradient+Loss quoted",
+      "raw": "The Gradient",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "2",
+      "label": "examples: Paper+Stack quoted",
+      "raw": "Paper Trails",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "3",
+      "label": "examples: Latent+Dead quoted",
+      "raw": "Latent Walk",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "4",
+      "label": "examples: AV-jargon quoted",
+      "raw": "Ego Motion",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "5",
+      "label": "no example \u2014 style description",
+      "raw": "The future of work is a rapidly evolving landsca",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "6",
+      "label": "no example temp=1.0",
+      "raw": "Ava's Code: A Comprehensive Approach to Data Sci",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "7",
+      "label": "no example temp=1.2",
+      "raw": "Bots for Bingo: A Creative Machine",
+      "pass": false,
+      "reason": "too-many-words"
+    },
+    {
+      "idx": "8",
+      "label": "Gradient+Loss var 1",
+      "raw": "The Gradient",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "9",
+      "label": "Gradient+Loss var 2",
+      "raw": "The Gradient",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "10",
+      "label": "Gradient+Loss var 3",
+      "raw": "The Gradient",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "11",
+      "label": "Gradient+Loss var 4",
+      "raw": "The Gradient",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "12",
+      "label": "Gradient+Loss var 5",
+      "raw": "The Gradient",
+      "pass": true,
+      "reason": ""
+    }
+  ]
+}

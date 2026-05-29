@@ -1,0 +1,394 @@
+{
+  "rows": [
+    {
+      "idx": "1",
+      "model": "Q2_K (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Gradient Tape",
+      "raw": "Creative ML blog name like",
+      "pass": false,
+      "reason": "too-many-words"
+    },
+    {
+      "idx": "2",
+      "model": "Q2_K (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Loss Landscape",
+      "raw": "Loss Landscape",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "3",
+      "model": "Q2_K (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Latent Walk",
+      "raw": "The latent walk of the past decade has b",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "4",
+      "model": "Q2_K (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Dead Neurons",
+      "raw": "Dead Neurons",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "5",
+      "model": "Q2_K (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Ego Motion",
+      "raw": "The Ego Motion Blog:",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "6",
+      "model": "Q3_K_S (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Gradient Tape",
+      "raw": "The art of transforming data into action",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "7",
+      "model": "Q3_K_S (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Loss Landscape",
+      "raw": "Loss Landscape",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "8",
+      "model": "Q3_K_S (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Latent Walk",
+      "raw": "Latent Walk",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "9",
+      "model": "Q3_K_S (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Dead Neurons",
+      "raw": "Dead Neurons",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "10",
+      "model": "Q3_K_S (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Ego Motion",
+      "raw": "Creative blog name like",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "11",
+      "model": "IQ3_XS (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Gradient Tape",
+      "raw": "Gradient Tape",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "12",
+      "model": "IQ3_XS (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Loss Landscape",
+      "raw": "Loss Landscape",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "13",
+      "model": "IQ3_XS (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Latent Walk",
+      "raw": "Creative blog name like",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "14",
+      "model": "IQ3_XS (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Dead Neurons",
+      "raw": "Dead Neurons",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "15",
+      "model": "IQ3_XS (bartowski)",
+      "size": "84.1 MB",
+      "seed": "Ego Motion",
+      "raw": "Ego Motion",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "16",
+      "model": "Q3_K_M (bartowski)",
+      "size": "89.2 MB",
+      "seed": "Gradient Tape",
+      "raw": "Gradient Tape",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "17",
+      "model": "Q3_K_M (bartowski)",
+      "size": "89.2 MB",
+      "seed": "Loss Landscape",
+      "raw": "Loss Landscape",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "18",
+      "model": "Q3_K_M (bartowski)",
+      "size": "89.2 MB",
+      "seed": "Latent Walk",
+      "raw": "Latent Walk",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "19",
+      "model": "Q3_K_M (bartowski)",
+      "size": "89.2 MB",
+      "seed": "Dead Neurons",
+      "raw": "Dead Neurons",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "20",
+      "model": "Q3_K_M (bartowski)",
+      "size": "89.2 MB",
+      "seed": "Ego Motion",
+      "raw": "Ego Motion",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "21",
+      "model": "Q3_K_L (lmstudio) \u2605 baseline",
+      "size": "93.0 MB",
+      "seed": "\u2014",
+      "raw": "[LOAD FAILED: The operation failed becau",
+      "pass": false,
+      "reason": "load-error"
+    }
+  ],
+  "by_model": {
+    "Q2_K (bartowski)": [
+      {
+        "idx": "1",
+        "model": "Q2_K (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Gradient Tape",
+        "raw": "Creative ML blog name like",
+        "pass": false,
+        "reason": "too-many-words"
+      },
+      {
+        "idx": "2",
+        "model": "Q2_K (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Loss Landscape",
+        "raw": "Loss Landscape",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "3",
+        "model": "Q2_K (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Latent Walk",
+        "raw": "The latent walk of the past decade has b",
+        "pass": false,
+        "reason": "length"
+      },
+      {
+        "idx": "4",
+        "model": "Q2_K (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Dead Neurons",
+        "raw": "Dead Neurons",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "5",
+        "model": "Q2_K (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Ego Motion",
+        "raw": "The Ego Motion Blog:",
+        "pass": true,
+        "reason": ""
+      }
+    ],
+    "Q3_K_S (bartowski)": [
+      {
+        "idx": "6",
+        "model": "Q3_K_S (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Gradient Tape",
+        "raw": "The art of transforming data into action",
+        "pass": false,
+        "reason": "length"
+      },
+      {
+        "idx": "7",
+        "model": "Q3_K_S (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Loss Landscape",
+        "raw": "Loss Landscape",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "8",
+        "model": "Q3_K_S (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Latent Walk",
+        "raw": "Latent Walk",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "9",
+        "model": "Q3_K_S (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Dead Neurons",
+        "raw": "Dead Neurons",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "10",
+        "model": "Q3_K_S (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Ego Motion",
+        "raw": "Creative blog name like",
+        "pass": true,
+        "reason": ""
+      }
+    ],
+    "IQ3_XS (bartowski)": [
+      {
+        "idx": "11",
+        "model": "IQ3_XS (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Gradient Tape",
+        "raw": "Gradient Tape",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "12",
+        "model": "IQ3_XS (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Loss Landscape",
+        "raw": "Loss Landscape",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "13",
+        "model": "IQ3_XS (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Latent Walk",
+        "raw": "Creative blog name like",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "14",
+        "model": "IQ3_XS (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Dead Neurons",
+        "raw": "Dead Neurons",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "15",
+        "model": "IQ3_XS (bartowski)",
+        "size": "84.1 MB",
+        "seed": "Ego Motion",
+        "raw": "Ego Motion",
+        "pass": true,
+        "reason": ""
+      }
+    ],
+    "Q3_K_M (bartowski)": [
+      {
+        "idx": "16",
+        "model": "Q3_K_M (bartowski)",
+        "size": "89.2 MB",
+        "seed": "Gradient Tape",
+        "raw": "Gradient Tape",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "17",
+        "model": "Q3_K_M (bartowski)",
+        "size": "89.2 MB",
+        "seed": "Loss Landscape",
+        "raw": "Loss Landscape",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "18",
+        "model": "Q3_K_M (bartowski)",
+        "size": "89.2 MB",
+        "seed": "Latent Walk",
+        "raw": "Latent Walk",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "19",
+        "model": "Q3_K_M (bartowski)",
+        "size": "89.2 MB",
+        "seed": "Dead Neurons",
+        "raw": "Dead Neurons",
+        "pass": true,
+        "reason": ""
+      },
+      {
+        "idx": "20",
+        "model": "Q3_K_M (bartowski)",
+        "size": "89.2 MB",
+        "seed": "Ego Motion",
+        "raw": "Ego Motion",
+        "pass": true,
+        "reason": ""
+      }
+    ],
+    "Q3_K_L (lmstudio) \u2605 baseline": [
+      {
+        "idx": "21",
+        "model": "Q3_K_L (lmstudio) \u2605 baseline",
+        "size": "93.0 MB",
+        "seed": "\u2014",
+        "raw": "[LOAD FAILED: The operation failed becau",
+        "pass": false,
+        "reason": "load-error"
+      }
+    ]
+  }
+}

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>wllama prompt test — round 2</title>
+  <style>
+    body { background:#0d0d0d; color:#e8e4df; font-family:'JetBrains Mono',monospace; font-size:12px; padding:1rem; margin:0; }
+    h2   { color:#CC785C; margin:.5rem 0; font-size:14px; }
+    .ctrl{ display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem; }
+    select,button { background:#1a1a1a; color:#e8e4df; border:1px solid #333; border-radius:4px; padding:.35rem .6rem; font-family:inherit; font-size:12px; cursor:pointer; }
+    button { background:#CC785C; color:#fff; border-color:#CC785C; }
+    button:disabled { background:#333; color:#666; border-color:#333; cursor:not-allowed; }
+    #status { color:#f5a623; margin-bottom:.5rem; }
+    #prog   { height:4px; background:#333; border-radius:2px; margin-bottom:.75rem; overflow:hidden; }
+    #prog-fill { height:100%; width:0; background:linear-gradient(90deg,#CC785C,#f5a623); transition:width .2s; }
+    table   { border-collapse:collapse; width:100%; }
+    th      { text-align:left; color:#CC785C; border-bottom:1px solid #333; padding:.3rem .5rem; font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+    td      { padding:.3rem .5rem; border-bottom:1px solid #1e1e1e; vertical-align:top; }
+    td.idx  { color:#555; width:1.5rem; }
+    td.label-col { color:#888; max-width:200px; font-size:11px; }
+    td.raw  { color:#a8d8a8; max-width:220px; word-break:break-word; white-space:pre-wrap; }
+    td.pass { color:#4caf50; }
+    td.fail { color:#f44336; }
+    .section-row td { background:#1a1a1a; color:#CC785C; font-weight:bold; padding:.4rem .5rem; }
+    #copy-btn { margin-top:.75rem; }
+  </style>
+</head>
+<body>
+<h2>Round 2 — ML-jargon seeds (GPT-2) & quoted-only (SmolLM2)</h2>
+
+<div class="ctrl">
+  <select id="model-sel">
+    <option value="gpt2-Q3_K_M|tensorblock/gpt2-GGUF|completion" selected>GPT-2 Q3_K_M</option>
+    <option value="SmolLM2-135M-Instruct-Q3_K_L|lmstudio-community/SmolLM2-135M-Instruct-GGUF|instruct">SmolLM2 Q3_K_L</option>
+  </select>
+  <button id="run-btn">▶ Load &amp; Run</button>
+  <span id="status">Idle</span>
+</div>
+<div id="prog"><div id="prog-fill"></div></div>
+
+<table id="results">
+  <thead><tr>
+    <th>#</th><th>Label</th><th>Raw output</th><th>Pass?</th><th>Reason</th>
+  </tr></thead>
+  <tbody id="tbody"></tbody>
+</table>
+<button id="copy-btn" disabled>Copy JSON</button>
+
+<script type="module">
+import { Wllama } from '/assets/wllama/wllama.min.js';
+
+const IM = (user, ap='') =>
+  `<|im_start|>user\n${user}<|im_end|>\n<|im_start|>assistant\n${ap}`;
+
+/* ─── GPT-2 round-2: ML-jargon-seed lists ─────────────────────────────── */
+/* Insight: seeds made of ML/AV jargon combos anchor style better than real blog names */
+const GPT2_TESTS = [
+  /* Core jargon-seed variants */
+  { label:'jargon: gradient-tape seed',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+  { label:'jargon: sensor-fusion AV seed',
+    prompt:'AV engineering blogs: "Sensor Fusion", "Road Graph", "Ego Motion", "Sparse Lidar", "The Detector", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+  { label:'jargon: attention-dropout seed',
+    prompt:'AI research blogs: "Attention Span", "Dropout Notes", "Weight Decay", "Batch Norm", "The Encoder", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+  { label:'jargon: state-space robotics seed',
+    prompt:'Robotics/ML blogs: "State Space", "Reward Trace", "Sim Gap", "Policy Grad", "The Planner", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+  { label:'jargon: model-soup concise seed',
+    prompt:'ML engineering blogs: "Model Soup", "Dead Neurons", "Latent Walk", "The Residual", "Sparse Signal", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+  { label:'jargon: single-word ML seed',
+    prompt:'Short ML terms: "Gradients", "Kernels", "Tensors", "Embeddings", "Residuals", "Softmax", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:12 },
+  /* Temp sweep on best-looking jargon seed */
+  { label:'jargon temp=0.7',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.7, topK:35, topP:0.6, maxTok:20 },
+  { label:'jargon temp=1.1',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:1.1, topK:35, topP:0.6, maxTok:20 },
+  /* topK sweep */
+  { label:'jargon topK=20',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.9, topK:20, topP:0.6, maxTok:20 },
+  { label:'jargon topK=50',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.9, topK:50, topP:0.6, maxTok:20 },
+  /* repeat same prompt 5x to check variance */
+  { label:'variance run 1',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+  { label:'variance run 2',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+  { label:'variance run 3',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+  { label:'variance run 4',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+  { label:'variance run 5',
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20 },
+];
+
+/* ─── SmolLM2: quoted-only format (the one approach that worked) ─────── */
+const SMOL_TESTS = [
+  /* Exact winning format from round 1, 5 reps to check variance */
+  { label:'winning format rep1',
+    prompt: IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name in quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'winning format rep2',
+    prompt: IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name in quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'winning format rep3',
+    prompt: IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name in quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  /* Slight variations on instruction */
+  { label:'shorter instruction',
+    prompt: IM('One ML blog name in quotes. Short and creative.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'AV angle',
+    prompt: IM('Blog name like "Signal Notes" or "Road Graph" for an AV researcher. In quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'jargon-seed instruct',
+    prompt: IM('ML blog name. Like "Gradient Tape" or "Loss Landscape" or "Sparse Signal". In quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'two-word constraint',
+    prompt: IM('Two-word ML blog name like "Signal Notes" or "Paper Trails". In quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  /* Temp sweep */
+  { label:'temp=0.7',
+    prompt: IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name in quotes.', '"'),
+    stop:['"'], temp:0.7, topK:35, topP:0.6, maxTok:15 },
+  { label:'temp=1.1',
+    prompt: IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name in quotes.', '"'),
+    stop:['"'], temp:1.1, topK:35, topP:0.6, maxTok:15 },
+  { label:'temp=1.3',
+    prompt: IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name in quotes.', '"'),
+    stop:['"'], temp:1.3, topK:35, topP:0.6, maxTok:15 },
+  /* topK sweep */
+  { label:'topK=20',
+    prompt: IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name in quotes.', '"'),
+    stop:['"'], temp:0.9, topK:20, topP:0.6, maxTok:15 },
+  { label:'topK=50',
+    prompt: IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name in quotes.', '"'),
+    stop:['"'], temp:0.9, topK:50, topP:0.6, maxTok:15 },
+];
+
+/* ── Filter ── */
+const BLOCKLIST_WORDS = /\b(military|grammy|hollywood|travelling|travel|new york|london|paris|senate|congress|largest|rigid|aware|mint)\b/i;
+const BORING = /\b(guide|handbook|tutorial|community|journal|news|revolution|future of|the way|how to|user guide)\b/i;
+const GENERIC_EXACT = new Set(['machine learning','deep learning','artificial intelligence','ai','ml','autonomous vehicles','data science','predictive analytics','neural network','risk','python','tensorflow','pytorch']);
+
+function isPlausible(s) {
+  s = s.trim();
+  if (!s || s.length < 3 || s.length > 35) return [false, 'length'];
+  if (/^[A-Z]{3,}$/.test(s)) return [false, 'all-caps'];
+  if (/^\d/.test(s)) return [false, 'starts-digit'];
+  if (/[<>&"]/.test(s)) return [false, 'bad-char'];
+  if (/\d+\.\d+/.test(s)) return [false, 'version-num'];
+  if ((s.match(/\s/g)||[]).length > 3) return [false, 'too-many-words'];
+  if (BLOCKLIST_WORDS.test(s)) return [false, 'blocked-word'];
+  if (BORING.test(s)) return [false, 'boring-word'];
+  if (GENERIC_EXACT.has(s.toLowerCase())) return [false, 'too-generic'];
+  if (!/[A-Za-z]/.test(s)) return [false, 'no-letter'];
+  return [true, ''];
+}
+
+const tbody = document.getElementById('tbody');
+const statusEl = document.getElementById('status');
+const progFill = document.getElementById('prog-fill');
+const copyBtn  = document.getElementById('copy-btn');
+const allResults = [];
+
+function setStatus(s) { statusEl.textContent = s; }
+function setProgress(n, t) { progFill.style.width = (t ? n/t*100 : 0) + '%'; }
+
+function addRow(idx, label, raw, pass, reason) {
+  const tr = document.createElement('tr');
+  const rawTrunc = (raw||'').replace(/</g,'&lt;').replace(/\n/g,'↵').slice(0,50) || '<em style="color:#555">empty</em>';
+  tr.innerHTML = `
+    <td class="idx">${idx}</td>
+    <td class="label-col">${label}</td>
+    <td class="raw">${rawTrunc}</td>
+    <td class="${pass?'pass':'fail'}">${pass?'✓':'✗'}</td>
+    <td class="${pass?'pass':reason?'fail':''}">${reason}</td>`;
+  tbody.appendChild(tr);
+  allResults.push({ idx, label, raw, pass, reason });
+}
+
+function addSection(label) {
+  const tr = document.createElement('tr');
+  tr.className = 'section-row';
+  tr.innerHTML = `<td colspan="5">${label}</td>`;
+  tbody.appendChild(tr);
+}
+
+document.getElementById('run-btn').addEventListener('click', async () => {
+  const runBtn = document.getElementById('run-btn');
+  runBtn.disabled = true;
+  tbody.innerHTML = '';
+  allResults.length = 0;
+  copyBtn.disabled = true;
+
+  const [file, repo, modelType] = document.getElementById('model-sel').value.split('|');
+  const url = `https://huggingface.co/${repo}/resolve/main/${file}.gguf`;
+  const tests = modelType === 'instruct' ? SMOL_TESTS : GPT2_TESTS;
+
+  setStatus(`Loading ${file}…`);
+
+  const wllama = new Wllama(
+    { default: '/assets/wllama/wllama.wasm' },
+    { logger: { debug:()=>{}, log:()=>{}, warn:()=>{}, error:()=>{} } }
+  );
+
+  try {
+    await wllama.loadModelFromUrl(url, {
+      n_ctx: 512, n_gpu_layers: 0,
+      n_threads: Math.min(navigator.hardwareConcurrency ?? 2, 4),
+      progressCallback: ({loaded, total}) => {
+        if (total > 0) setProgress(loaded, total);
+        setStatus(`Downloading… ${total>0?Math.round(loaded/total*100)+'%':'?'}`);
+      },
+    });
+    setProgress(1, 1);
+    setStatus(`${file} ready — running ${tests.length} tests`);
+  } catch(e) {
+    setStatus('Load failed: ' + e.message);
+    runBtn.disabled = false;
+    return;
+  }
+
+  addSection(modelType === 'instruct' ? 'SmolLM2 — quoted-only format tests' : 'GPT-2 — ML-jargon seed tests');
+
+  for (let i = 0; i < tests.length; i++) {
+    const tc = tests[i];
+    setStatus(`Test ${i+1}/${tests.length}: ${tc.label}`);
+    let raw = null;
+    try {
+      const gen = await wllama.createCompletion({
+        prompt: tc.prompt, stream: true,
+        max_tokens: tc.maxTok, temperature: tc.temp,
+        top_k: tc.topK, top_p: tc.topP, stop: tc.stop,
+      });
+      raw = '';
+      for await (const chunk of gen) raw += chunk.choices[0]?.text ?? '';
+      raw = raw.trim();
+    } catch(e) { raw = '[ERR:' + e.message.slice(0,30) + ']'; }
+    const [pass, reason] = isPlausible(raw);
+    addRow(i+1, tc.label, raw, pass, reason);
+  }
+
+  const passed = allResults.filter(r=>r.pass).length;
+  setStatus(`Done — ${passed}/${tests.length} passed`);
+  await wllama.exit();
+  copyBtn.disabled = false;
+  runBtn.disabled = false;
+});
+
+copyBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(JSON.stringify(allResults, null, 2));
+  copyBtn.textContent = 'Copied!';
+  setTimeout(() => copyBtn.textContent = 'Copy JSON', 1500);
+});
+</script>
+</body>
+</html>

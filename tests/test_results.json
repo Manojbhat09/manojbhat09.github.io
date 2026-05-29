@@ -1,0 +1,214 @@
+{
+  "GPT-2 Q3_K_M": [
+    {
+      "idx": "1",
+      "prompt": "\u2026l\", \"The Gradient\", \"Import AI\", \"Latent Space\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "The Largest and the Largest",
+      "pass": false,
+      "reason": "too-many-words"
+    },
+    {
+      "idx": "2",
+      "prompt": "\u2026tes\", \"Road Signs\", \"Sensor Fusion\", \"The Lane\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "The U.S. Military",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "3",
+      "prompt": "\u2026 \"Paper Trails\", \"Stack Traces\", \"Kernel Panic\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "Iam of the World",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "4",
+      "prompt": "\u2026\"Import AI\", \"Last Week in AI\", \"Interconnects\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "Risk",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "5",
+      "prompt": "\u2026Pivot\", \"Loss Curve\", \"Deep Dive\", \"Grad Check\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "Aptitude Check",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "6",
+      "prompt": "\u2026, \"Ahead of AI\", \"Signal Notes\", \"Paper Trails\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "Travelling to New York",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "7",
+      "prompt": "\u2026 Notes, Paper Trails, The Gradient, Kernel Panic,",
+      "stop": "[\"\\n\",\",\"]",
+      "raw": "Rigid",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "8",
+      "prompt": "\u2026 ML engineers:\n1. Research Log\n2. Signal Notes\n3.",
+      "stop": "[\"\\n\"]",
+      "raw": "The \"M.L.M.E.E.I.",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "9",
+      "prompt": "\u2026s:\n- The Gradient\n- Signal Notes\n- Kernel Panic\n-",
+      "stop": "[\"\\n\"]",
+      "raw": "Grammy and the Pivot",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "10",
+      "prompt": "\u2026l\", \"The Gradient\", \"Import AI\", \"Latent Space\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "Aware",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "11",
+      "prompt": "\u2026l\", \"The Gradient\", \"Import AI\", \"Latent Space\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "Mint",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "12",
+      "prompt": "\u2026l\", \"The Gradient\", \"Import AI\", \"Latent Space\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "The Matrix",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "13",
+      "prompt": "\u2026l\", \"The Gradient\", \"Import AI\", \"Latent Space\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "Fractal",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "14",
+      "prompt": "\u2026l\", \"The Gradient\", \"Import AI\", \"Latent Space\", \"",
+      "stop": "[\"\\\"\",\"\\n\",\",\"]",
+      "raw": "Largest",
+      "pass": true,
+      "reason": ""
+    }
+  ],
+  "SmolLM2 Q3_K_L": [
+    {
+      "idx": "1",
+      "prompt": "\u2026s, nothing else.<|im_end|>\n<|im_start|>assistant\n\"",
+      "stop": "[\"\\\"\"]",
+      "raw": "A new approach to data analysis: leveraging machine learning for actionable insights",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "2",
+      "prompt": "\u2026r. The name only.<|im_end|>\n<|im_start|>assistant",
+      "stop": "[\"\\n\",\"<|\"]",
+      "raw": "The name \"Nestled in the Human Story\" is a creative short",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "3",
+      "prompt": "\u2026 blog. Name only.<|im_end|>\n<|im_start|>assistant",
+      "stop": "[\"\\n\",\"<|\"]",
+      "raw": "Here's a potential name suggestion for an autonomous vehicles research blog:",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "4",
+      "prompt": "\u2026nd names only.\n1.<|im_end|>\n<|im_start|>assistant",
+      "stop": "[\"<|\"]",
+      "raw": "1. ML Engineer\n2. AI Engineer\n3. Machine Learning Engineer\n4. AI Engineer\n5. AI Engineer",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "5",
+      "prompt": "\u2026 bullet points.\n-<|im_end|>\n<|im_start|>assistant",
+      "stop": "[\"<|\"]",
+      "raw": "1. AI Researcher\n2. Machine Learning Engineer\n3. Cognitive Architect\n4. Cognitive Architecturer\n5. AI Researcher",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "6",
+      "prompt": "\u2026archer. One name.<|im_end|>\n<|im_start|>assistant",
+      "stop": "[\"\\n\",\"<|\"]",
+      "raw": "I'm glad you found my blog interesting. I have a few thoughts on",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "7",
+      "prompt": "\u2026 name in quotes.<|im_end|>\n<|im_start|>assistant\n\"",
+      "stop": "[\"\\\"\"]",
+      "raw": "Signal Notes",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "8",
+      "prompt": "\u2026. Two words only.<|im_end|>\n<|im_start|>assistant",
+      "stop": "[\"\\n\",\"<|\"]",
+      "raw": "I'm sorry for the misunderstanding, but as an",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "9",
+      "prompt": "\u2026only, numbered.<|im_end|>\n<|im_start|>assistant\n1.",
+      "stop": "[\"<|\"]",
+      "raw": "\"Aerial Vehicles and Autonomous Systems\"\n2. \"AI and Machine Learning in Autonomous Systems\"\n3. \"Unsupervised Learning and Neural Networks\"\n4. \"Data and Machine Learning\"\n5. \"Automated Autonomous Systems\"\n6. \"Computer Vision and Image Analysis\"",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "10",
+      "prompt": "\u2026rcher. Name only.<|im_end|>\n<|im_start|>assistant",
+      "stop": "[\"\\n\",\"<|\"]",
+      "raw": "I'm thrilled to hear that you're interested in exploring the intersection of technology",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "11",
+      "prompt": "\u2026rcher. Name only.<|im_end|>\n<|im_start|>assistant",
+      "stop": "[\"\\n\",\"<|\"]",
+      "raw": "I've been working on a new project that involves analyzing the genetic data of",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "12",
+      "prompt": "\u2026rcher. Name only.<|im_end|>\n<|im_start|>assistant",
+      "stop": "[\"\\n\",\"<|\"]",
+      "raw": "A creative blog name for an ML researcher could be \"The AI Scientist's",
+      "pass": false,
+      "reason": "length"
+    }
+  ]
+}

@@ -1,0 +1,195 @@
+{
+  "GPT-2 Q3_K_M": [
+    {
+      "idx": "1",
+      "label": "jargon: gradient-tape seed",
+      "raw": "The Pause",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "2",
+      "label": "jargon: sensor-fusion AV seed",
+      "raw": "Hexar",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "3",
+      "label": "jargon: attention-dropout seed",
+      "raw": "Reverse",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "4",
+      "label": "jargon: state-space robotics seed",
+      "raw": "Trial",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "5",
+      "label": "jargon: model-soup concise seed",
+      "raw": "Alfred",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "6",
+      "label": "jargon: single-word ML seed",
+      "raw": "Sine",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "7",
+      "label": "jargon temp=0.7",
+      "raw": "The Riemann",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "8",
+      "label": "jargon temp=1.1",
+      "raw": "I Am the Way",
+      "pass": false,
+      "reason": "boring-word"
+    },
+    {
+      "idx": "9",
+      "label": "jargon topK=20",
+      "raw": "The Kernel",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "10",
+      "label": "jargon topK=50",
+      "raw": "I.A.C.S.",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "11",
+      "label": "variance run 1",
+      "raw": "Tail",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "12",
+      "label": "variance run 2",
+      "raw": "Rearview",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "13",
+      "label": "variance run 3",
+      "raw": "The M.O.S.",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "14",
+      "label": "variance run 4",
+      "raw": "Ascend",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "15",
+      "label": "variance run 5",
+      "raw": "The Ripper",
+      "pass": true,
+      "reason": ""
+    }
+  ],
+  "SmolLM2 Q3_K_L": [
+    {
+      "idx": "1",
+      "label": "winning format rep1",
+      "raw": "Blog name like",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "2",
+      "label": "winning format rep2",
+      "raw": "Kernel Panic",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "3",
+      "label": "winning format rep3",
+      "raw": "Signal Notes",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "4",
+      "label": "shorter instruction",
+      "raw": "AI for the future of healthcare: a call for inspir",
+      "pass": false,
+      "reason": "length"
+    },
+    {
+      "idx": "5",
+      "label": "AV angle",
+      "raw": "Signal Notes",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "6",
+      "label": "jargon-seed instruct",
+      "raw": "Gradient Tape",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "7",
+      "label": "two-word constraint",
+      "raw": "Signal Notes",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "8",
+      "label": "temp=0.7",
+      "raw": "Signal Notes",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "9",
+      "label": "temp=1.1",
+      "raw": "Blog name like",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "10",
+      "label": "temp=1.3",
+      "raw": "Signal Notes",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "11",
+      "label": "topK=20",
+      "raw": "Signal Notes",
+      "pass": true,
+      "reason": ""
+    },
+    {
+      "idx": "12",
+      "label": "topK=50",
+      "raw": "Signal Notes",
+      "pass": true,
+      "reason": ""
+    }
+  ]
+}

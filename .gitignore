@@ -1,0 +1,13 @@
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+vendor/
+.bundle/
+Gemfile.lock
+node_modules/
+package-lock.json
+package.json
+*.Zone.Identifier
+# wllama assets are intentionally tracked (committed to repo)
+!assets/wllama/

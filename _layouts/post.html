@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title }} — {{ site.title }}</title>
+  <meta name="description" content="{{ page.description | default: page.excerpt | strip_html | truncate: 160 }}">
+  <meta name="author" content="{{ site.author.name }}">
+
+  <!-- Open Graph -->
+  <meta property="og:title"       content="{{ page.title }}">
+  <meta property="og:description" content="{{ page.description | default: page.excerpt | strip_html | truncate: 160 }}">
+  <meta property="og:type"        content="article">
+  <meta property="og:url"         content="{{ page.url | absolute_url }}">
+
+  <link rel="shortcut icon" href="/images/favicon/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="/blog/blog.css">
+
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    crossorigin="anonymous"
+    onload="renderMathInElement(document.body,{
+      delimiters:[
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false},
+        {left:'\\[',right:'\\]',display:true},
+        {left:'\\(',right:'\\)',display:false}
+      ],
+      throwOnError:false
+    });">
+  </script>
+
+  <!-- Lato font (matches main site) -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>
+    /* Inline the @font-face instead of a slow Google Fonts request */
+    @import url("https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap");
+  </style>
+</head>
+
+<body class="blog-body">
+
+  <!-- Reading progress -->
+  <div id="reading-progress"></div>
+
+  <!-- Sticky nav -->
+  <nav class="blog-nav">
+    <a href="/" class="nav-home">Manoj Bhat</a>
+    <a href="/blog/">Blog</a>
+    {% if page.categories.size > 0 %}
+    <a href="/blog/#{{ page.categories | first | slugify }}">{{ page.categories | first }}</a>
+    {% endif %}
+  </nav>
+
+  <div class="post-page">
+
+    <!-- ── Sidebar ─────────────────────────────────────────────── -->
+    <aside class="post-sidebar">
+      <div class="sidebar-meta">
+        <div class="meta-date">{{ page.date | date: "%B %d, %Y" }}</div>
+        <div class="meta-rt" id="sidebar-rt"></div>
+        <div style="margin-top:0.6rem">
+          {% for tag in page.tags %}
+          <span class="tag tag-{{ tag | slugify }}">{{ tag }}</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="toc-title">Contents</div>
+      <nav id="toc"></nav>
+    </aside>
+
+    <!-- ── Main ───────────────────────────────────────────────── -->
+    <main class="post-main">
+      <a href="/blog/" class="back-link">← All posts</a>
+
+      <header class="post-header">
+        <div class="post-header-meta">
+          <span>{{ page.date | date: "%B %d, %Y" }}</span>
+          <span class="sep">·</span>
+          <span id="header-rt"></span>
+          {% if page.tags.size > 0 %}
+          <span class="sep">·</span>
+          {% for tag in page.tags %}
+          <span class="tag tag-{{ tag | slugify }}">{{ tag }}</span>
+          {% endfor %}
+          {% endif %}
+        </div>
+
+        <h1 class="post-title">{{ page.title }}</h1>
+
+        {% if page.description %}
+        <p class="post-description">{{ page.description }}</p>
+        {% endif %}
+      </header>
+
+      <article class="post-content" id="post-content">
+        {{ content }}
+      </article>
+
+      <footer class="post-footer">
+        <div class="author-card">
+          <img src="/images/ManojBhat.png" alt="Manoj Bhat">
+          <div>
+            <p class="author-name">Manoj Bhat</p>
+            <p class="author-bio">ML &amp; AI Scientist — Autonomous Vehicles, Robotics, Computer Vision</p>
+            <div class="author-links">
+              <a href="https://scholar.google.com/citations?user={{ site.author.scholar }}" target="_blank">Scholar</a>
+              <a href="https://github.com/{{ site.author.github }}" target="_blank">GitHub</a>
+              <a href="https://x.com/{{ site.author.twitter }}" target="_blank">Twitter</a>
+              <a href="/blog/">More posts</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+
+  </div><!-- .post-page -->
+
+  <script>
+  (function () {
+    /* Reading progress bar */
+    const bar = document.getElementById('reading-progress');
+    window.addEventListener('scroll', () => {
+      const total = document.body.scrollHeight - window.innerHeight;
+      bar.style.width = total > 0 ? (window.scrollY / total * 100) + '%' : '0%';
+    }, { passive: true });
+
+    /* Reading time */
+    const content = document.getElementById('post-content');
+    if (content) {
+      const words = content.innerText.trim().split(/\s+/).length;
+      const mins  = Math.max(1, Math.round(words / 220));
+      const label = mins + ' min read';
+      const rt1 = document.getElementById('header-rt');
+      const rt2 = document.getElementById('sidebar-rt');
+      if (rt1) rt1.textContent = label;
+      if (rt2) rt2.textContent = label;
+    }
+
+    /* Auto table-of-contents */
+    const headings = content
+      ? Array.from(content.querySelectorAll('h2, h3'))
+      : [];
+    const toc = document.getElementById('toc');
+
+    headings.forEach((h, i) => {
+      if (!h.id) h.id = 'sec-' + i;
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      a.className = 'toc-' + h.tagName.toLowerCase();
+      toc.appendChild(a);
+    });
+
+    /* Highlight active section */
+    if (headings.length && 'IntersectionObserver' in window) {
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          const link = toc.querySelector('a[href="#' + e.target.id + '"]');
+          if (link) link.classList.toggle('active', e.isIntersecting);
+        });
+      }, { rootMargin: '-15% 0px -75% 0px' });
+      headings.forEach(h => obs.observe(h));
+    }
+  })();
+  </script>
+
+</body>
+</html>

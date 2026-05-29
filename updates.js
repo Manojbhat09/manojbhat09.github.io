@@ -17,24 +17,22 @@ const updates = [
       highlight: false,
       link: 'link-to-update-1'
     }
+];
 
-    
-    // ... other updates
-  ];
-
-  function renderUpdates() {
+function renderUpdates() {
     const container = document.getElementById('updatesContainer');
-    container.innerHTML = '<ul class="news-updates-list">' + updates.map(update => updateTemplate(update)).join('') + '</ul>';  }
-  
-    function updateTemplate(update) {
-      return `
-          <div class="news-update ${update.highlight ? 'highlight' : ''}">
-              <span class="update-date"><a href="${update.link}">${update.date}</a></span>
-              <span class="update-content">${update.content}</span>
-          </div>
-      `;
-  }
-  
-  document.addEventListener("DOMContentLoaded", function() {
+    container.innerHTML = '<ul class="news-updates-list">' + updates.map(update => updateTemplate(update)).join('') + '</ul>';
+}
+
+function updateTemplate(update) {
+    return `
+        <div class="news-update ${update.highlight ? 'highlight' : ''}">
+            <span class="update-date"><a href="${update.link}">${update.date}</a></span>
+            <span class="update-content">${update.content}</span>
+        </div>
+    `;
+}
+
+document.addEventListener("DOMContentLoaded", function() {
     renderUpdates();
-  });
+});

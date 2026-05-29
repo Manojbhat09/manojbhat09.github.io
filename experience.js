@@ -58,17 +58,17 @@ const workExperiences = [
           "Contributed to several high-impact academic research projects."
         ]
       },
-      {
+    /* {
         company: "Google",
         logo: "images/google_logo.jpg",
         role: "Intern",
         department: "",
-        duration: "May 2'17 – Sept/2’17",
+        duration: "May 2’17 – Sept/2’17",
         achievements: [
           "Data Science Intern to use CERN dataset and give insights on distributions of quarks",
           "Developed C++ frameworks for Google X collaboration in Project Wing drone delivery"
         ]
-      },
+      }, */
     // ... other experiences
   ];
   
@@ -78,7 +78,7 @@ const workExperiences = [
     container.innerHTML = workExperiences.map(exp => {
       return `
         <tr>
-          <td style="padding: 5px;width:25%;vertical-align:middle">
+          <td style="padding: 5px;width:25%;vertical-align:middle;text-align:right">
             <img src="${exp.logo}" alt="${exp.company} Logo" class="company-logo">
           </td>
           <td style="padding:20px;width:75%;vertical-align:middle">

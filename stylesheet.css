@@ -195,8 +195,9 @@ span.highlight {
 }
 
 .company-logo {
-  width: 50px; /* Adjust size as needed */
-  height: auto;
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
   margin-right: 20px;
 }
 
@@ -237,12 +238,7 @@ span.highlight {
   margin-bottom: 5px;
 }
 
-.company-logo {
-  width: auto;  /* or you can specify a fixed width, e.g., 100px */
-  height: 80px; /* Adjust height to suit your design needs */
-  display: block;
-  margin: 0 auto; /* Centers the image in the containing element */
-}
+/* logo sizing consolidated — see first .company-logo rule */
 
 
 
@@ -320,11 +316,7 @@ h2 {
 
 .company-logo {
   flex-shrink: 0;
-  width: 100px; 
-  height: 100px; 
-  margin-right: var(--spacing-medium);
-  border-radius: 10%; /* This will maintain the circular shape *
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+  object-fit: contain;
 }
 
 .work-experience-details {

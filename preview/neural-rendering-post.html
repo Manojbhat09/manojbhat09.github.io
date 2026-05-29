@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Rendering for AV Simulation — Manoj Bhat (Preview)</title>
+  <link rel="stylesheet" href="../blog/blog.css">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    crossorigin="anonymous"
+    onload="renderMathInElement(document.body,{
+      delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
+      throwOnError:false});">
+  </script>
+</head>
+<body class="blog-body">
+
+  <div id="reading-progress"></div>
+
+  <nav class="blog-nav">
+    <a href="../index.html" class="nav-home">Manoj Bhat</a>
+    <a href="index.html">Blog</a>
+  </nav>
+
+  <div class="post-page">
+
+    <aside class="post-sidebar">
+      <div class="sidebar-meta">
+        <div class="meta-date">August 20, 2024</div>
+        <div class="meta-rt" id="sidebar-rt"></div>
+        <div style="margin-top:0.6rem">
+          <span class="tag tag-generative-ai">Generative AI</span>
+          <span class="tag tag-autonomous-driving">Autonomous Driving</span>
+          <span class="tag tag-deep-learning">Deep Learning</span>
+          <span class="tag tag-robotics">Robotics</span>
+        </div>
+      </div>
+      <div class="toc-title">Contents</div>
+      <nav id="toc"></nav>
+    </aside>
+
+    <main class="post-main">
+      <a href="index.html" class="back-link">← All posts</a>
+
+      <header class="post-header">
+        <div class="post-header-meta">
+          <span>August 20, 2024</span>
+          <span class="sep">·</span>
+          <span id="header-rt"></span>
+          <span class="sep">·</span>
+          <span class="tag tag-generative-ai">Generative AI</span>
+          <span class="tag tag-autonomous-driving">Autonomous Driving</span>
+        </div>
+        <h1 class="post-title">Neural Rendering for Autonomous Vehicle Simulation</h1>
+        <p class="post-description">How NeRF-based scene representations are replacing hand-crafted 3-D asset pipelines in AV simulation — what we built at Rivian, and where the method still breaks down.</p>
+      </header>
+
+      <article class="post-content" id="post-content">
+
+        <p>Simulation is the backbone of AV development. You can't test a software update on 10 million real miles every sprint — you simulate them. But classical simulation (hand-crafted 3-D assets, rule-based sensor models) has a fundamental gap: <strong>the simulated world doesn't look like the real world</strong>, and perception models trained or evaluated in simulation don't transfer cleanly.</p>
+
+        <p>Neural rendering — specifically <strong>Neural Radiance Fields (NeRF)</strong> and its derivatives — offers a different deal: reconstruct a photorealistic, controllable scene representation directly from real sensor logs. At Rivian we ran a hackathon exploring this for our autonomy stack, which resulted in a patent. This post is a technical write-up of what we built, what worked, and what surprised us.</p>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
+
+        <h2 id="why-fidelity-matters">Why simulation fidelity matters so much</h2>
+
+        <p>Consider a simple example: a perception model that detects vehicles. In classical simulation, vehicles are rendered as textured 3-D meshes under an approximated sensor model. In the real world, LiDAR returns are affected by surface reflectivity, material properties, rain drops, and sensor-specific scan patterns — none of which the classical model captures faithfully.</p>
+
+        <p>Neural rendering directly sidesteps the asset pipeline. Instead of modeling scenes analytically, it fits a continuous function:</p>
+
+        $$f_\theta: (\mathbf{x}, \mathbf{d}) \to (\mathbf{c}, \sigma)$$
+
+        <p>mapping a 3-D point $\mathbf{x}$ and view direction $\mathbf{d}$ to color $\mathbf{c}$ and volume density $\sigma$. Volume rendering then integrates along camera rays to produce photorealistic images.</p>
+
+        <h2 id="av-challenges">The AV-specific challenges</h2>
+
+        <h3 id="dynamic-agents">Dynamic agents</h3>
+
+        <p>A parked truck is fine. A moving cyclist is a disaster — it occupies different spatial positions in each frame, creating ghosted artifacts. We decompose the scene into a static background NeRF and per-object NeRFs, each tracked in their own object-centric coordinate frame:</p>
+
+        $$\mathbf{x}_{\text{obj}} = R_k(t)^\top (\mathbf{x}_{\text{world}} - \mathbf{t}_k(t))$$
+
+        <h3 id="sparse-viewpoints">Sparse viewpoint coverage</h3>
+
+        <p>A camera driving down a road sees each scene element from a narrow cone of viewpoints. We regularize with a depth prior from LiDAR:</p>
+
+        $$\mathcal{L}_\text{depth} = \left\| \hat{d} - d_\text{LiDAR} \right\|_1, \quad \hat{d} = \int_0^\infty t \cdot T(t)\sigma(t)\,dt$$
+
+        <h3 id="multi-modal">Multi-modal sensor rendering</h3>
+
+        <p>We extended the radiance field to output LiDAR intensity and range in addition to RGB — a single unified scene representation that renders both modalities from the same density field.</p>
+
+        <h2 id="what-we-built">What we built at Rivian</h2>
+
+        <p>The hackathon prototype combined three components:</p>
+        <ol>
+          <li><strong>Instant-NGP backbone</strong> (hash-encoded NeRF) for fast scene optimization — ~15 min per log segment on 4× A100s vs. hours for vanilla NeRF.</li>
+          <li><strong>Object-centric decomposition</strong> using detections from our production perception stack to initialize object pose tracks, then jointly refining scene and object representations.</li>
+          <li><strong>LiDAR branch</strong>: a two-head network outputting both RGB (camera supervision) and $(r, \text{intensity})$ (LiDAR supervision) from the same density field.</li>
+        </ol>
+
+        <p>The key result: for static/semi-static scenes, we could synthesize sensor data from novel viewpoints that was indistinguishable from real data to our perception model (measured by detection AP on held-out synthetic vs. real comparisons).</p>
+
+        <h2 id="what-breaks">What still breaks</h2>
+
+        <p><strong>Fast motion.</strong> A cyclist traveling at 25 km/h moves ~0.7 m per frame at 10 Hz. When the 3-D tracker loses the object (occlusion, crowded scenes), the NeRF degrades significantly.</p>
+
+        <p><strong>Long log segments.</strong> NeRF optimized over a 60-second log covers more of the scene but is much harder to optimize. The scene changes and the neural field has no way to represent time-varying static structure cleanly.</p>
+
+        <p><strong>Radar.</strong> Radar reflections have fundamentally different physics (specular multipath, Doppler) that don't map naturally to a density-based volume.</p>
+
+        <h2 id="where-this-goes">Where this is going</h2>
+
+        <p>The next frontier is <strong>generative NeRF</strong> — instead of reconstructing a scene from real sensor data, generate plausible new scenes conditioned on map layout and agent behavior specifications. Diffusion-model-based approaches that output driving video conditioned on scene graphs are emerging from Waymo, Wayve, and academic labs.</p>
+
+        <div class="insight">
+          <strong>Thesis</strong>
+          Neural rendering isn't replacing simulation — it's replacing the asset pipeline. The physics simulation stays. What changes is how scene geometry and appearance are represented: from hand-crafted meshes to learned continuous fields fit directly to real-world sensor logs.
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
+
+        <h2 id="references">References</h2>
+        <ul>
+          <li>Mildenhall et al., <em>NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis</em>, ECCV 2020.</li>
+          <li>Müller et al., <em>Instant Neural Graphics Primitives</em>, SIGGRAPH 2022.</li>
+          <li>Tancik et al., <em>Block-NeRF: Scalable Large Scene Neural View Synthesis</em>, CVPR 2022.</li>
+          <li>UniSim, <em>A Neural Closed-Loop Sensor Simulator</em>, CVPR 2023 (Waymo).</li>
+        </ul>
+
+      </article>
+
+      <footer class="post-footer">
+        <div class="author-card">
+          <img src="../images/ManojBhat.png" alt="Manoj Bhat">
+          <div>
+            <p class="author-name">Manoj Bhat</p>
+            <p class="author-bio">ML &amp; AI Scientist — Autonomous Vehicles, Robotics, Computer Vision</p>
+            <div class="author-links">
+              <a href="https://scholar.google.com/citations?user=SKWv3BcAAAAJ" target="_blank">Scholar</a>
+              <a href="https://github.com/manojbhat09" target="_blank">GitHub</a>
+              <a href="index.html">More posts</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+
+  </div>
+
+  <script>
+  (function () {
+    const bar = document.getElementById('reading-progress');
+    window.addEventListener('scroll', () => {
+      const total = document.body.scrollHeight - window.innerHeight;
+      bar.style.width = total > 0 ? (window.scrollY / total * 100) + '%' : '0%';
+    }, { passive: true });
+
+    const content = document.getElementById('post-content');
+    const words = content.innerText.trim().split(/\s+/).length;
+    const mins  = Math.max(1, Math.round(words / 220));
+    document.getElementById('header-rt').textContent  = mins + ' min read';
+    document.getElementById('sidebar-rt').textContent = mins + ' min read';
+
+    const headings = Array.from(content.querySelectorAll('h2, h3'));
+    const toc = document.getElementById('toc');
+    headings.forEach((h, i) => {
+      if (!h.id) h.id = 'sec-' + i;
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      a.className = 'toc-' + h.tagName.toLowerCase();
+      toc.appendChild(a);
+    });
+
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          const link = toc.querySelector('a[href="#' + e.target.id + '"]');
+          if (link) link.classList.toggle('active', e.isIntersecting);
+        });
+      }, { rootMargin: '-15% 0px -75% 0px' });
+      headings.forEach(h => obs.observe(h));
+    }
+  })();
+  </script>
+
+</body>
+</html>

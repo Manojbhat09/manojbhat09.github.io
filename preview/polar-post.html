@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polar Space LiDAR — Manoj Bhat (Preview)</title>
+  <link rel="stylesheet" href="../blog/blog.css">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    crossorigin="anonymous"
+    onload="renderMathInElement(document.body,{
+      delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
+      throwOnError:false});">
+  </script>
+</head>
+<body class="blog-body">
+
+  <div id="reading-progress"></div>
+
+  <nav class="blog-nav">
+    <a href="../index.html" class="nav-home">Manoj Bhat</a>
+    <a href="index.html">Blog</a>
+  </nav>
+
+  <div class="post-page">
+
+    <aside class="post-sidebar">
+      <div class="sidebar-meta">
+        <div class="meta-date">November 10, 2024</div>
+        <div class="meta-rt" id="sidebar-rt"></div>
+        <div style="margin-top:0.6rem">
+          <span class="tag tag-lidar">LiDAR</span>
+          <span class="tag tag-autonomous-driving">Autonomous Driving</span>
+          <span class="tag tag-deep-learning">Deep Learning</span>
+        </div>
+      </div>
+      <div class="toc-title">Contents</div>
+      <nav id="toc"></nav>
+    </aside>
+
+    <main class="post-main">
+      <a href="index.html" class="back-link">← All posts</a>
+
+      <header class="post-header">
+        <div class="post-header-meta">
+          <span>November 10, 2024</span>
+          <span class="sep">·</span>
+          <span id="header-rt"></span>
+          <span class="sep">·</span>
+          <span class="tag tag-lidar">LiDAR</span>
+          <span class="tag tag-autonomous-driving">Autonomous Driving</span>
+        </div>
+        <h1 class="post-title">Polar Space LiDAR: Why Coordinate Systems Are a Design Choice</h1>
+        <p class="post-description">How switching from Cartesian to polar coordinates for LiDAR point cloud processing cuts latency by 9× without hurting accuracy — and the non-obvious trade-offs involved.</p>
+      </header>
+
+      <article class="post-content" id="post-content">
+
+        <p>Most 3D object detection pipelines project LiDAR point clouds into a bird's-eye-view (BEV) Cartesian grid, run a 2-D or 3-D convolution, and call it done. This works. But it bakes in a mismatch between the sensor's <em>native</em> data structure and the representation your model sees.</p>
+
+        <p>This post covers the core ideas behind our NeurIPS 2021 paper on <strong>fast polar attentive detection</strong>, why polar space representations are a fundamentally better fit for rotating LiDAR sensors, and the engineering trade-offs you hit in practice.</p>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
+
+        <h2 id="the-mismatch">The Cartesian–LiDAR mismatch</h2>
+
+        <p>A rotating LiDAR sensor like the Velodyne HDL-64E fires lasers radially outward. Each return gives you $(r, \theta, \phi)$ — range, azimuth, elevation. The natural data structure is <strong>cylindrical</strong>: dense at close range, sparse at long range.</p>
+
+        <p>When you voxelize this into a $512 \times 512$ Cartesian grid:</p>
+        <ul>
+          <li><strong>Near-field cells are over-sampled</strong> — multiple LiDAR beams hit the same voxel, wasting compute.</li>
+          <li><strong>Far-field cells are under-sampled</strong> — sparse returns are dropped or averaged, losing signal exactly where you need it most (long-range obstacles).</li>
+        </ul>
+
+        <h2 id="polar-representation">Polar representation</h2>
+
+        <p>Instead of voxelizing into $(x, y)$, we voxelize into $(r, \theta)$: <strong>range</strong> and <strong>azimuth</strong>. This gives a range-azimuth image of shape $(R, A, C)$ where:</p>
+        <ul>
+          <li>$R$ = number of range bins (e.g., 512 for 0–100 m)</li>
+          <li>$A$ = number of azimuth bins (e.g., 512 for 360°)</li>
+          <li>$C$ = feature channels (intensity, height, occupancy, …)</li>
+        </ul>
+
+        <p>Each LiDAR beam now maps to exactly one cell. The representation is uniformly dense — no over- or under-sampling by design.</p>
+
+        <h2 id="polar-attention">Attention in polar space</h2>
+
+        <p>We use a <strong>learned positional bias</strong> that scales the attention weights by range:</p>
+
+        $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d}} + B(r)\right) V$$
+
+        <p>where $B(r) \in \mathbb{R}^{H \times L \times L}$ is a learned per-range-bin bias. This lets the model adaptively widen or narrow its effective receptive field with range.</p>
+
+        <h2 id="streaming-inference">Streaming inference</h2>
+
+        <p>A standard LiDAR stack accumulates a full 360° sweep before running detection (~100 ms at 10 Hz). With a polar representation you can process <strong>partial sweeps</strong>:</p>
+
+        $$\text{latency}_{\text{Cartesian}} \approx 100 + 80 = 180 \text{ ms}$$
+        $$\text{latency}_{\text{polar streaming}} \approx \frac{100}{12} + 12 \approx 20 \text{ ms}$$
+
+        <p>This <strong>9× latency reduction</strong> is the main practical argument for polar representations in safety-critical systems.</p>
+
+        <h2 id="implementation">Key implementation</h2>
+
+<pre><code class="language-python">def polar_voxelize(points, r_bins=512, a_bins=512, r_max=100.0):
+    x, y, z, intensity = points[:, 0], points[:, 1], points[:, 2], points[:, 3]
+    r = torch.sqrt(x**2 + y**2).clamp(0, r_max)
+    a = (torch.atan2(y, x) + math.pi) / (2 * math.pi)  # [0, 1]
+
+    r_idx = (r / r_max * r_bins).long().clamp(0, r_bins - 1)
+    a_idx = (a * a_bins).long().clamp(0, a_bins - 1)
+
+    voxel = torch.zeros(r_bins, a_bins, 4)
+    voxel[r_idx, a_idx] = torch.stack([x, y, z, intensity], dim=-1)
+    return voxel  # (R, A, C) ready for 2-D backbone</code></pre>
+
+        <h2 id="results">Results</h2>
+
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin:1rem 0">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border)">
+              <th style="text-align:left;padding:6px 8px;color:var(--muted)">Method</th>
+              <th style="text-align:center;padding:6px 8px;color:var(--muted)">AP_3D ↑</th>
+              <th style="text-align:center;padding:6px 8px;color:var(--muted)">Latency ↓</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:6px 8px">PointPillars</td>
+              <td style="text-align:center;padding:6px 8px">77.3</td>
+              <td style="text-align:center;padding:6px 8px">16 ms</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:6px 8px">CenterPoint</td>
+              <td style="text-align:center;padding:6px 8px">85.0</td>
+              <td style="text-align:center;padding:6px 8px">22 ms</td>
+            </tr>
+            <tr style="background:var(--coral-light);font-weight:700">
+              <td style="padding:6px 8px">Ours (polar attn)</td>
+              <td style="text-align:center;padding:6px 8px">86.2</td>
+              <td style="text-align:center;padding:6px 8px">11 ms</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="tradeoffs">Non-obvious trade-offs</h2>
+
+        <p><strong>Distortion at close range.</strong> In polar space, a square object near the sensor looks like a trapezoid. The model must learn to undo this during box regression — in practice not a problem, but it makes data augmentation harder.</p>
+
+        <p><strong>Azimuth resolution.</strong> Finer azimuth = more bins = more compute. 0.5° (720 bins) is a sweet spot for vehicles; pedestrian detection benefits from 0.25° at the cost of 2× tensor size.</p>
+
+        <div class="insight">
+          <strong>Key takeaway</strong>
+          The choice of coordinate system isn't a preprocessing detail — it's an architectural decision that determines what invariances the model gets for free, what augmentations are cheap, and how fast inference can be. Polar representations align the data structure with the sensor's physics, and that alignment pays dividends in latency and long-range accuracy.
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
+
+        <h2 id="references">References</h2>
+        <ul>
+          <li>Bhat et al., <em>Fast Polar Attentive 3D Object Detection on LiDAR Point Clouds</em>, NeurIPS 2021 Workshop. <a href="https://www.porikli.com/mysite/pdfs/porikli%202021%20-%20Fast%20polar%20attentive%203D%20object%20detection%20on%20LiDAR%20point%20clouds.pdf" target="_blank">PDF</a></li>
+        </ul>
+
+      </article>
+
+      <footer class="post-footer">
+        <div class="author-card">
+          <img src="../images/ManojBhat.png" alt="Manoj Bhat">
+          <div>
+            <p class="author-name">Manoj Bhat</p>
+            <p class="author-bio">ML &amp; AI Scientist — Autonomous Vehicles, Robotics, Computer Vision</p>
+            <div class="author-links">
+              <a href="https://scholar.google.com/citations?user=SKWv3BcAAAAJ" target="_blank">Scholar</a>
+              <a href="https://github.com/manojbhat09" target="_blank">GitHub</a>
+              <a href="index.html">More posts</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+
+  </div>
+
+  <script>
+  (function () {
+    const bar = document.getElementById('reading-progress');
+    window.addEventListener('scroll', () => {
+      const total = document.body.scrollHeight - window.innerHeight;
+      bar.style.width = total > 0 ? (window.scrollY / total * 100) + '%' : '0%';
+    }, { passive: true });
+
+    const content = document.getElementById('post-content');
+    const words = content.innerText.trim().split(/\s+/).length;
+    const mins  = Math.max(1, Math.round(words / 220));
+    document.getElementById('header-rt').textContent  = mins + ' min read';
+    document.getElementById('sidebar-rt').textContent = mins + ' min read';
+
+    const headings = Array.from(content.querySelectorAll('h2, h3'));
+    const toc = document.getElementById('toc');
+    headings.forEach((h, i) => {
+      if (!h.id) h.id = 'sec-' + i;
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      a.className = 'toc-' + h.tagName.toLowerCase();
+      toc.appendChild(a);
+    });
+
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          const link = toc.querySelector('a[href="#' + e.target.id + '"]');
+          if (link) link.classList.toggle('active', e.isIntersecting);
+        });
+      }, { rootMargin: '-15% 0px -75% 0px' });
+      headings.forEach(h => obs.observe(h));
+    }
+  })();
+  </script>
+
+</body>
+</html>

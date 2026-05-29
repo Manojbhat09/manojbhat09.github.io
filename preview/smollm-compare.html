@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SmolLM2 quantization comparison</title>
+  <style>
+    body { background:#0d0d0d; color:#e8e4df; font-family:'JetBrains Mono',monospace; font-size:12px; padding:1rem; margin:0; }
+    h2   { color:#CC785C; margin:.5rem 0 1rem; font-size:14px; }
+    .ctrl{ display:flex; gap:.5rem; align-items:center; margin-bottom:1rem; }
+    button { background:#CC785C; color:#fff; border:none; border-radius:4px; padding:.35rem .7rem; font-family:inherit; font-size:12px; cursor:pointer; }
+    button:disabled { background:#333; color:#666; cursor:not-allowed; }
+    #status { color:#f5a623; margin-left:.5rem; }
+    #prog   { height:4px; background:#333; border-radius:2px; margin-bottom:.75rem; overflow:hidden; }
+    #prog-fill { height:100%; width:0; background:linear-gradient(90deg,#CC785C,#f5a623); transition:width .2s; }
+    table   { border-collapse:collapse; width:100%; }
+    th      { text-align:left; color:#CC785C; border-bottom:1px solid #333; padding:.3rem .5rem; font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+    td      { padding:.3rem .5rem; border-bottom:1px solid #1e1e1e; vertical-align:top; }
+    .sr td  { background:#1a1a1a; color:#CC785C; font-weight:bold; padding:.4rem .5rem; }
+    td.pass { color:#4caf50; }
+    td.fail { color:#f44336; }
+    td.raw  { color:#a8d8a8; max-width:200px; word-break:break-word; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+<h2>SmolLM2-135M-Instruct — quantization comparison (instruct echo test)</h2>
+<div class="ctrl">
+  <button id="rb">▶ Run all 5 models</button>
+  <span id="status">Idle</span>
+</div>
+<div id="prog"><div id="prog-fill"></div></div>
+<table>
+  <thead><tr><th>#</th><th>Model</th><th>Size</th><th>Prompt seed</th><th>Raw output</th><th>Pass?</th><th>Reason</th></tr></thead>
+  <tbody id="tb"></tbody>
+</table>
+<button id="cb" disabled style="margin-top:.6rem">Copy JSON</button>
+
+<script type="module">
+import { Wllama } from '/assets/wllama/wllama.min.js';
+
+/* The 5 models to compare, smallest to largest */
+const MODELS = [
+  { label:'Q2_K (bartowski)',    file:'SmolLM2-135M-Instruct-Q2_K.gguf',    repo:'bartowski/SmolLM2-135M-Instruct-GGUF',            size:88202080 },
+  { label:'Q3_K_S (bartowski)', file:'SmolLM2-135M-Instruct-Q3_K_S.gguf',   repo:'bartowski/SmolLM2-135M-Instruct-GGUF',            size:88202080 },
+  { label:'IQ3_XS (bartowski)', file:'SmolLM2-135M-Instruct-IQ3_XS.gguf',   repo:'bartowski/SmolLM2-135M-Instruct-GGUF',            size:88202080 },
+  { label:'Q3_K_M (bartowski)', file:'SmolLM2-135M-Instruct-Q3_K_M.gguf',   repo:'bartowski/SmolLM2-135M-Instruct-GGUF',            size:93510496 },
+  { label:'Q3_K_L (lmstudio) ★ baseline', file:'SmolLM2-135M-Instruct-Q3_K_L.gguf', repo:'lmstudio-community/SmolLM2-135M-Instruct-GGUF', size:97532992 },
+];
+
+const IM = (u, ap='') => `<|im_start|>user\n${u}<|im_end|>\n<|im_start|>assistant\n${ap}`;
+
+/* Same 5 prompts used in production */
+const PROMPTS = [
+  { seed:'Gradient Tape',  p: IM('Creative ML blog name like "Gradient Tape". In quotes.', '"') },
+  { seed:'Loss Landscape', p: IM('Creative ML blog name like "Loss Landscape". In quotes.', '"') },
+  { seed:'Latent Walk',    p: IM('Creative blog name like "Latent Walk" for an ML researcher. In quotes.', '"') },
+  { seed:'Dead Neurons',   p: IM('Creative blog name like "Dead Neurons" for an AI researcher. In quotes.', '"') },
+  { seed:'Ego Motion',     p: IM('Creative blog name like "Ego Motion" for an AV researcher. In quotes.', '"') },
+];
+
+const BLOCKLIST  = /\b(military|grammy|hollywood|travelling|travel|new york|london|paris|senate|congress|ripper|alfred)\b/i;
+const BORING     = /\b(guide|handbook|tutorial|community|journal|future of|the way|how to|user guide|i am)\b/i;
+const ECHO_CHECK = /^(blog name like|a creative|here'?s|one ml|give me|short ml|creative ml|ai for|the future)/i;
+const GENERIC    = new Set(['machine learning','deep learning','ai','ml','autonomous vehicles','data science']);
+
+function isPlausible(s) {
+  s = s.trim();
+  if (!s || s.length < 3 || s.length > 35) return [false,'length'];
+  if (/^[A-Z]{3,}$/.test(s)) return [false,'all-caps'];
+  if (/^\d/.test(s)) return [false,'starts-digit'];
+  if (/[<>&"]/.test(s)) return [false,'bad-char'];
+  if (/\d+\.\d+/.test(s)) return [false,'version-num'];
+  if ((s.match(/\S+/g)||[]).length > 4) return [false,'too-many-words'];
+  if (BLOCKLIST.test(s)) return [false,'blocked'];
+  if (BORING.test(s)) return [false,'boring'];
+  if (ECHO_CHECK.test(s)) return [false,'prompt-echo'];
+  if (GENERIC.has(s.toLowerCase())) return [false,'too-generic'];
+  if (!/[A-Za-z]/.test(s)) return [false,'no-letter'];
+  return [true,''];
+}
+
+const tb = document.getElementById('tb');
+const statusEl = document.getElementById('status');
+const progFill = document.getElementById('prog-fill');
+const allResults = [];
+let rowIdx = 0;
+
+function setStatus(s) { statusEl.textContent = s; }
+function setProgress(n,t){ progFill.style.width=(t?n/t*100:0)+'%'; }
+function mb(b){ return (b/1024/1024).toFixed(1)+' MB'; }
+
+function addSection(txt) {
+  const tr=document.createElement('tr'); tr.className='sr';
+  tr.innerHTML=`<td colspan="7">${txt}</td>`; tb.appendChild(tr);
+}
+
+function addRow(model, seed, raw, pass, reason) {
+  rowIdx++;
+  const tr=document.createElement('tr');
+  const r=(raw||'').replace(/</g,'&lt;').replace(/\n/g,'↵').slice(0,40)||'<em style="color:#555">empty</em>';
+  tr.innerHTML=`<td style="color:#555">${rowIdx}</td><td style="color:#888;font-size:11px">${model}</td><td style="color:#555;white-space:nowrap">${mb(MODELS.find(m=>m.label===model)?.size||0)}</td><td style="color:#666">${seed}</td><td class="raw">${r}</td><td class="${pass?'pass':'fail'}">${pass?'✓':'✗'}</td><td class="${pass?'pass':'fail'}">${reason}</td>`;
+  tb.appendChild(tr);
+  allResults.push({ model, seed, raw, pass, reason });
+}
+
+document.getElementById('rb').addEventListener('click', async () => {
+  const rb=document.getElementById('rb');
+  rb.disabled=true; tb.innerHTML=''; allResults.length=0; rowIdx=0;
+  document.getElementById('cb').disabled=true;
+
+  for (const m of MODELS) {
+    addSection(`${m.label}  ·  ${mb(m.size)}`);
+    setStatus(`Loading ${m.file}…`);
+    setProgress(0,1);
+
+    const wllama = new Wllama(
+      {default:'/assets/wllama/wllama.wasm'},
+      {logger:{debug:()=>{},log:()=>{},warn:()=>{},error:()=>{}}}
+    );
+
+    let loadOk = false;
+    try {
+      await wllama.loadModelFromUrl(
+        `https://huggingface.co/${m.repo}/resolve/main/${m.file}`,
+        { n_ctx:512, n_gpu_layers:0,
+          n_threads:Math.min(navigator.hardwareConcurrency??2,4),
+          progressCallback:({loaded,total})=>{ if(total>0) setProgress(loaded,total); setStatus(`${m.label} — downloading… ${total>0?Math.round(loaded/total*100)+'%':'?'}`); }
+        }
+      );
+      setProgress(1,1); loadOk=true;
+    } catch(e) {
+      addRow(m.label,'—','[LOAD FAILED: '+e.message.slice(0,40)+']',false,'load-error');
+    }
+
+    if (loadOk) {
+      for (const {seed, p} of PROMPTS) {
+        setStatus(`${m.label} — prompting: "${seed}"…`);
+        let raw='';
+        try {
+          const gen=await wllama.createCompletion({
+            prompt:p, stream:true, max_tokens:15,
+            temperature:0.9, top_k:35, top_p:0.6, stop:['"'],
+          });
+          for await(const chunk of gen) raw+=chunk.choices[0]?.text??'';
+          raw=raw.trim();
+        } catch(e){ raw='[ERR:'+e.message.slice(0,25)+']'; }
+        const [pass,reason]=isPlausible(raw);
+        addRow(m.label, seed, raw, pass, reason);
+      }
+    }
+
+    try { await wllama.exit(); } catch(_){}
+  }
+
+  setStatus('Done');
+  document.getElementById('cb').disabled=false;
+  rb.disabled=false;
+});
+
+document.getElementById('cb').addEventListener('click',()=>{
+  navigator.clipboard.writeText(JSON.stringify(allResults,null,2));
+  const b=document.getElementById('cb'); b.textContent='Copied!';
+  setTimeout(()=>b.textContent='Copy JSON',1500);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wayformer: Rethinking Motion Forecasting — Manoj Bhat (Preview)</title>
+  <link rel="stylesheet" href="../blog/blog.css">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    crossorigin="anonymous"
+    onload="renderMathInElement(document.body,{
+      delimiters:[
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false}
+      ],throwOnError:false});">
+  </script>
+</head>
+<body class="blog-body">
+
+  <div id="reading-progress"></div>
+
+  <nav class="blog-nav">
+    <a href="../index.html" class="nav-home">Manoj Bhat</a>
+    <a href="index.html">Blog</a>
+  </nav>
+
+  <div class="post-page">
+
+    <!-- Sidebar -->
+    <aside class="post-sidebar">
+      <div class="sidebar-meta">
+        <div class="meta-date">January 15, 2025</div>
+        <div class="meta-rt" id="sidebar-rt"></div>
+        <div style="margin-top:0.6rem">
+          <span class="tag tag-motion-forecasting">Motion Forecasting</span>
+          <span class="tag tag-autonomous-driving">Autonomous Driving</span>
+          <span class="tag tag-transformer">Transformer</span>
+          <span class="tag tag-deep-learning">Deep Learning</span>
+        </div>
+      </div>
+      <div class="toc-title">Contents</div>
+      <nav id="toc"></nav>
+    </aside>
+
+    <!-- Main -->
+    <main class="post-main">
+      <a href="index.html" class="back-link">← All posts</a>
+
+      <header class="post-header">
+        <div class="post-header-meta">
+          <span>January 15, 2025</span>
+          <span class="sep">·</span>
+          <span id="header-rt"></span>
+          <span class="sep">·</span>
+          <span class="tag tag-motion-forecasting">Motion Forecasting</span>
+          <span class="tag tag-autonomous-driving">Autonomous Driving</span>
+          <span class="tag tag-transformer">Transformer</span>
+        </div>
+        <h1 class="post-title">Wayformer: Rethinking Motion Forecasting with Efficient Attention</h1>
+        <p class="post-description">A deep-dive into the Wayformer architecture — how factorized attention over agents and scene context achieves state-of-the-art trajectory prediction while staying practical for production AV stacks.</p>
+      </header>
+
+      <article class="post-content" id="post-content">
+
+        <p>Motion forecasting is one of the hardest sub-problems in autonomous driving. Given a few seconds of history for every agent in the scene — other cars, cyclists, pedestrians — your model must predict a distribution over their future trajectories. Get it wrong and your planner either over-brakes (annoying) or mis-allocates collision-avoidance budget (dangerous).</p>
+
+        <p>At Rivian I led the implementation of <strong>Wayformer</strong> for our offboard planning stack. This post covers the architecture, the key design choices that make it work, and the practical lessons from shipping it at scale.</p>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
+
+        <h2 id="the-core-problem">The core problem</h2>
+
+        <p>A standard scene has $N$ agents, each with a $T$-step history. Naively attending every agent to every other agent at every timestep costs:</p>
+
+        $$\mathcal{O}(N^2 \cdot T^2)$$
+
+        <p>For a dense urban scene with $N = 64$ agents and $T = 50$ timesteps that's 10.2 M attention pairs per forward pass — before you've even touched the HD map. Wayformer's answer is <em>factorized attention</em>.</p>
+
+        <h2 id="architecture-overview">Architecture overview</h2>
+
+        <p>Wayformer decomposes the joint attention into two orthogonal axes:</p>
+        <ol>
+          <li><strong>Temporal self-attention</strong> — each agent attends to its own history tokens</li>
+          <li><strong>Social self-attention</strong> — at each timestep, agents attend to each other</li>
+        </ol>
+
+        <p>The input is a sequence of per-agent state vectors $\mathbf{x}_i^t \in \mathbb{R}^d$. After positional encoding these are arranged into a 2-D grid:</p>
+
+        $$\mathbf{X} \in \mathbb{R}^{N \times T \times d}$$
+
+        <h3 id="temporal-encoder">Temporal encoder</h3>
+
+        <p>Temporal attention is applied row-wise (per agent, across time):</p>
+
+        $$\mathbf{H}^{(l)}_{\text{temp}} = \text{softmax}\!\left(\frac{Q_t K_t^\top}{\sqrt{d}}\right) V_t, \quad \text{applied for each } i \in [N]$$
+
+        <h3 id="social-encoder">Social encoder</h3>
+
+        <p>Social attention is applied column-wise (across agents, at each timestep):</p>
+
+        $$\mathbf{H}^{(l)}_{\text{soc}} = \text{softmax}\!\left(\frac{Q_s K_s^\top}{\sqrt{d}}\right) V_s, \quad \text{applied for each } t \in [T]$$
+
+        <p>Alternating these two reduces the effective cost to:</p>
+
+        $$\mathcal{O}\!\left(N \cdot T^2 + T \cdot N^2\right)$$
+
+        <p>For our typical scene sizes this is a <strong>~15× reduction</strong> in attention FLOPs.</p>
+
+        <h3 id="multimodal-decoder">Multimodal decoder</h3>
+
+        <p>The decoder produces $K$ future trajectories (modes) per agent via learned mode queries. Each mode query $\mathbf{q}_k$ attends to the fused representation:</p>
+
+        $$\hat{\mathbf{y}}_k = \text{MLP}\!\left(\text{CrossAttn}(\mathbf{q}_k, \mathbf{Z})\right) \in \mathbb{R}^{T_f \times 2}$$
+
+        <h2 id="loss-function">Loss function</h2>
+
+        <p>Training uses the <strong>winner-takes-all</strong> strategy: only the mode closest to ground truth contributes to the regression loss.</p>
+
+        $$\mathcal{L} = \underbrace{-\log p_{k^*}}_{\text{classification}} + \underbrace{\sum_{t=1}^{T_f} \left\| \hat{\mathbf{y}}_{k^*}^t - \mathbf{y}^t \right\|_2}_{\text{regression on best mode}}$$
+
+        <p>where $k^* = \arg\min_k \text{FDE}(\hat{\mathbf{y}}_k, \mathbf{y})$.</p>
+
+        <blockquote><p>Without winner-takes-all, all modes collapse to the mean trajectory — the classic <strong>mode-averaging</strong> failure of trajectory models.</p></blockquote>
+
+        <h2 id="implementation-lessons">Key implementation lessons</h2>
+
+        <h3 id="agent-masking">1. Agent masking is non-trivial</h3>
+
+        <p>Real scenes have variable $N$. Padding + masking sounds simple, but you need to propagate masks correctly through both temporal and social attention.</p>
+
+<pre><code class="language-python">def masked_attention(q, k, v, mask):
+    # mask: (B, N) bool, True = valid agent
+    scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(q.size(-1))
+    if mask is not None:
+        pad_mask = ~mask.unsqueeze(1).unsqueeze(2)   # (B, 1, 1, N)
+        scores = scores.masked_fill(pad_mask, -1e9)
+    return torch.softmax(scores, dim=-1) @ v</code></pre>
+
+        <h3 id="coordinate-frame">2. Coordinate frame matters</h3>
+
+        <p>We normalize all agent states into an <strong>agent-centric</strong> frame at the last observed timestep — position becomes $(0, 0)$, heading becomes $0$. This dramatically improves generalization because the model doesn't need to learn the same maneuver at every map location.</p>
+
+        <h3 id="gradient-stability">3. Gradient instability in long sequences</h3>
+
+        <p>With $T = 50$ input steps, gradients through temporal attention can explode for early timesteps. Two mitigations worked well:</p>
+        <ul>
+          <li><strong>Gradient clipping</strong> at norm 1.0</li>
+          <li><strong>Pre-LN</strong> (pre-layer-normalization) rather than post-LN in every transformer block</li>
+        </ul>
+
+        <h2 id="results">Argoverse 2 results</h2>
+
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin:1rem 0">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border)">
+              <th style="text-align:left;padding:6px 8px;color:var(--muted)">Model</th>
+              <th style="text-align:center;padding:6px 8px;color:var(--muted)">minADE₆ ↓</th>
+              <th style="text-align:center;padding:6px 8px;color:var(--muted)">minFDE₆ ↓</th>
+              <th style="text-align:center;padding:6px 8px;color:var(--muted)">MR₆ ↓</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:6px 8px">LSTM baseline</td>
+              <td style="text-align:center;padding:6px 8px">1.14</td>
+              <td style="text-align:center;padding:6px 8px">2.62</td>
+              <td style="text-align:center;padding:6px 8px">0.47</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:6px 8px">MTR</td>
+              <td style="text-align:center;padding:6px 8px">0.60</td>
+              <td style="text-align:center;padding:6px 8px">1.23</td>
+              <td style="text-align:center;padding:6px 8px">0.13</td>
+            </tr>
+            <tr style="background:var(--coral-light);font-weight:700">
+              <td style="padding:6px 8px">Wayformer</td>
+              <td style="text-align:center;padding:6px 8px">0.58</td>
+              <td style="text-align:center;padding:6px 8px">1.16</td>
+              <td style="text-align:center;padding:6px 8px">0.12</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="production">Production considerations</h2>
+
+        <p>A research benchmark number and a production model are different things. Some gaps closed at Rivian:</p>
+        <ul>
+          <li><strong>Latency</strong>: reference runs ~80 ms on V100. We needed &lt;20 ms — achieved via TorchScript export, reducing $K$ from 64→16 modes, INT8 quantization of the scene encoder.</li>
+          <li><strong>Calibration</strong>: softmax mode probabilities are poorly calibrated out of the box. Temperature scaling on a held-out val set fixed this.</li>
+          <li><strong>Long-horizon stability</strong>: beyond 3 s the prediction variance grows fast. We weight short-horizon portions more heavily in our planner's collision metrics.</li>
+        </ul>
+
+        <div class="insight">
+          <strong>Key takeaway</strong>
+          Wayformer's factorized attention is the right abstraction for AV forecasting: it respects the 2-D structure of the problem (time × agents) without quadratic blowup. The architecture is clean enough that you can understand and modify every component, which matters in production where you constantly need to add new agent types or input modalities.
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0">
+
+        <h2 id="references">References</h2>
+        <ul>
+          <li>Nayakanti et al., <em>Wayformer: Motion Forecasting via Simple &amp; Efficient Attention Networks</em>, ICRA 2023.</li>
+          <li><a href="https://github.com/Manojbhat09/Trajformer" target="_blank">github.com/Manojbhat09/Trajformer</a> — earlier transformer-based forecasting work at CMU.</li>
+        </ul>
+
+      </article>
+
+      <footer class="post-footer">
+        <div class="author-card">
+          <img src="../images/ManojBhat.png" alt="Manoj Bhat">
+          <div>
+            <p class="author-name">Manoj Bhat</p>
+            <p class="author-bio">ML &amp; AI Scientist — Autonomous Vehicles, Robotics, Computer Vision</p>
+            <div class="author-links">
+              <a href="https://scholar.google.com/citations?user=SKWv3BcAAAAJ" target="_blank">Scholar</a>
+              <a href="https://github.com/manojbhat09" target="_blank">GitHub</a>
+              <a href="https://x.com/ManojBhat711" target="_blank">Twitter</a>
+              <a href="index.html">More posts</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+
+  </div>
+
+  <script>
+  (function () {
+    const bar = document.getElementById('reading-progress');
+    window.addEventListener('scroll', () => {
+      const total = document.body.scrollHeight - window.innerHeight;
+      bar.style.width = total > 0 ? (window.scrollY / total * 100) + '%' : '0%';
+    }, { passive: true });
+
+    const content = document.getElementById('post-content');
+    const words = content.innerText.trim().split(/\s+/).length;
+    const mins  = Math.max(1, Math.round(words / 220));
+    document.getElementById('header-rt').textContent  = mins + ' min read';
+    document.getElementById('sidebar-rt').textContent = mins + ' min read';
+
+    const headings = Array.from(content.querySelectorAll('h2, h3'));
+    const toc = document.getElementById('toc');
+    headings.forEach((h, i) => {
+      if (!h.id) h.id = 'sec-' + i;
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.textContent = h.textContent;
+      a.className = 'toc-' + h.tagName.toLowerCase();
+      toc.appendChild(a);
+    });
+
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          const link = toc.querySelector('a[href="#' + e.target.id + '"]');
+          if (link) link.classList.toggle('active', e.isIntersecting);
+        });
+      }, { rootMargin: '-15% 0px -75% 0px' });
+      headings.forEach(h => obs.observe(h));
+    }
+  })();
+  </script>
+
+</body>
+</html>

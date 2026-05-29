@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>wllama prompt test — round 3</title>
+  <style>
+    body { background:#0d0d0d; color:#e8e4df; font-family:'JetBrains Mono',monospace; font-size:12px; padding:1rem; margin:0; }
+    h2   { color:#CC785C; margin:.5rem 0 1rem; font-size:14px; }
+    .ctrl{ display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem; }
+    select,button { background:#1a1a1a; color:#e8e4df; border:1px solid #333; border-radius:4px; padding:.35rem .6rem; font-family:inherit; font-size:12px; cursor:pointer; }
+    button { background:#CC785C; color:#fff; border-color:#CC785C; }
+    button:disabled { background:#333; color:#666; border-color:#333; cursor:not-allowed; }
+    #status { color:#f5a623; }
+    #prog   { height:4px; background:#333; border-radius:2px; margin-bottom:.75rem; overflow:hidden; }
+    #prog-fill { height:100%; width:0; background:linear-gradient(90deg,#CC785C,#f5a623); transition:width .2s; }
+    table   { border-collapse:collapse; width:100%; }
+    th      { text-align:left; color:#CC785C; border-bottom:1px solid #333; padding:.3rem .5rem; font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+    td      { padding:.3rem .5rem; border-bottom:1px solid #1e1e1e; vertical-align:top; }
+    td.idx  { color:#555; width:1.5rem; }
+    td.lbl  { color:#888; max-width:200px; font-size:11px; }
+    td.raw  { color:#a8d8a8; max-width:220px; word-break:break-word; white-space:pre-wrap; }
+    td.pass { color:#4caf50; }
+    td.fail { color:#f44336; }
+    .sr td  { background:#1a1a1a; color:#CC785C; font-weight:bold; padding:.4rem .5rem; }
+  </style>
+</head>
+<body>
+<h2>Round 3 — 2-word floor (GPT-2) · no example echo (SmolLM2)</h2>
+<div class="ctrl">
+  <select id="msel">
+    <option value="gpt2-Q3_K_M|tensorblock/gpt2-GGUF|completion" selected>GPT-2 Q3_K_M</option>
+    <option value="SmolLM2-135M-Instruct-Q3_K_L|lmstudio-community/SmolLM2-135M-Instruct-GGUF|instruct">SmolLM2 Q3_K_L</option>
+  </select>
+  <button id="rb">▶ Load &amp; Run</button>
+  <span id="status">Idle</span>
+</div>
+<div id="prog"><div id="prog-fill"></div></div>
+<table><thead><tr><th>#</th><th>Label</th><th>Raw</th><th>Pass?</th><th>Reason</th></tr></thead>
+<tbody id="tb"></tbody></table>
+<button id="cb" disabled style="margin-top:.6rem">Copy JSON</button>
+
+<script type="module">
+import { Wllama } from '/assets/wllama/wllama.min.js';
+
+const IM = (u, ap='') => `<|im_start|>user\n${u}<|im_end|>\n<|im_start|>assistant\n${ap}`;
+
+/* ─── GPT-2: best jargon seed from r2, 10 variance runs ──────────────── */
+/* Hypothesis: requiring 2-word minimum at filter fixes the junk proper nouns */
+const GPT2 = [
+  /* Run best seed 10x to measure variance with 2-word filter */
+  ...Array.from({length:10}, (_,i) => ({
+    label:`jargon-seed run ${i+1}`,
+    prompt:'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20
+  })),
+  /* Also try AV-jargon seed 5x */
+  ...Array.from({length:5}, (_,i) => ({
+    label:`AV-jargon run ${i+1}`,
+    prompt:'AV research blogs: "Sensor Fusion", "Ego Motion", "Road Graph", "Sparse Lidar", "The Detector", "',
+    stop:['"','\n',','], temp:0.9, topK:35, topP:0.6, maxTok:20
+  })),
+];
+
+/* ─── SmolLM2: no "Signal Notes" anywhere — avoid echo ───────────────── */
+/* Use "The Gradient" / "Loss Curve" / "Paper Trails" as examples instead */
+const SMOL = [
+  /* Vary examples so model can't just echo */
+  { label:'examples: Gradient+Loss quoted',
+    prompt: IM('Creative blog name like "The Gradient" or "Loss Curve". In quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'examples: Paper+Stack quoted',
+    prompt: IM('Creative blog name like "Paper Trails" or "Stack Traces". In quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'examples: Latent+Dead quoted',
+    prompt: IM('Creative blog name like "Latent Walk" or "Dead Neurons". In quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'examples: AV-jargon quoted',
+    prompt: IM('Creative blog name like "Ego Motion" or "Sparse Lidar". In quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'no example — style description',
+    prompt: IM('Short creative ML blog name (2-3 words, tech-sounding). In quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15 },
+  { label:'no example temp=1.0',
+    prompt: IM('Short creative ML blog name (2-3 words, tech-sounding). In quotes.', '"'),
+    stop:['"'], temp:1.0, topK:35, topP:0.6, maxTok:15 },
+  { label:'no example temp=1.2',
+    prompt: IM('Short creative ML blog name (2-3 words, tech-sounding). In quotes.', '"'),
+    stop:['"'], temp:1.2, topK:35, topP:0.6, maxTok:15 },
+  /* 5 variance runs of best candidate so far */
+  ...Array.from({length:5}, (_,i) => ({
+    label: `Gradient+Loss var ${i+1}`,
+    prompt: IM('Creative blog name like "The Gradient" or "Loss Curve". In quotes.', '"'),
+    stop:['"'], temp:0.9, topK:35, topP:0.6, maxTok:15
+  })),
+];
+
+/* ── Filter ── */
+const BLOCKLIST = /\b(military|grammy|hollywood|travelling|travel|new york|london|paris|senate|congress|largest|rigid|aware|mint|ripper|alfred|hexar)\b/i;
+const BORING = /\b(guide|handbook|tutorial|community|journal|future of|the way|how to|user guide|i am|iam)\b/i;
+const PROMPT_ECHO = /^(blog name like|a creative|here'?s|one ml|give me|short ml|creative ml|ai for)/i;
+const GENERIC = new Set(['machine learning','deep learning','ai','ml','autonomous vehicles','data science','predictive analytics','neural network','risk','python','tensorflow','pytorch','signal notes','kernel panic']);
+
+function isPlausible(s, requireTwoWords=false) {
+  s = s.trim();
+  if (!s || s.length < 3 || s.length > 35) return [false,'length'];
+  if (/^[A-Z]{3,}$/.test(s)) return [false,'all-caps'];
+  if (/^\d/.test(s)) return [false,'starts-digit'];
+  if (/[<>&"]/.test(s)) return [false,'bad-char'];
+  if (/\d+\.\d+/.test(s)) return [false,'version-num'];
+  const wordCount = (s.match(/\s/g)||[]).length + 1;
+  if (wordCount > 4) return [false,'too-many-words'];
+  if (requireTwoWords && wordCount < 2) return [false,'need-2-words'];
+  if (BLOCKLIST.test(s)) return [false,'blocked'];
+  if (BORING.test(s)) return [false,'boring'];
+  if (PROMPT_ECHO.test(s)) return [false,'prompt-echo'];
+  if (GENERIC.has(s.toLowerCase())) return [false,'too-generic'];
+  if (!/[A-Za-z]/.test(s)) return [false,'no-letter'];
+  return [true,''];
+}
+
+const tb = document.getElementById('tb');
+const statusEl = document.getElementById('status');
+const progFill = document.getElementById('prog-fill');
+const allResults = [];
+
+function setStatus(s) { statusEl.textContent = s; }
+function setProgress(n,t){ progFill.style.width=(t?n/t*100:0)+'%'; }
+
+function addSection(txt){
+  const tr=document.createElement('tr'); tr.className='sr';
+  tr.innerHTML=`<td colspan="5">${txt}</td>`; tb.appendChild(tr);
+}
+function addRow(idx,label,raw,pass,reason){
+  const tr=document.createElement('tr');
+  const r=(raw||'').replace(/</g,'&lt;').replace(/\n/g,'↵').slice(0,48)||'<em style="color:#555">empty</em>';
+  tr.innerHTML=`<td class="idx">${idx}</td><td class="lbl">${label}</td><td class="raw">${r}</td><td class="${pass?'pass':'fail'}">${pass?'✓':'✗'}</td><td class="${pass?'pass':reason?'fail':''}">${reason}</td>`;
+  tb.appendChild(tr);
+  allResults.push({idx,label,raw,pass,reason});
+}
+
+document.getElementById('rb').addEventListener('click', async () => {
+  const rb = document.getElementById('rb');
+  rb.disabled = true; tb.innerHTML=''; allResults.length=0;
+  document.getElementById('cb').disabled=true;
+
+  const [file,repo,modelType] = document.getElementById('msel').value.split('|');
+  const tests = modelType==='instruct' ? SMOL : GPT2;
+  const requireTwoWords = modelType==='completion';
+
+  setStatus(`Loading ${file}…`);
+  const wllama = new Wllama({default:'/assets/wllama/wllama.wasm'},{logger:{debug:()=>{},log:()=>{},warn:()=>{},error:()=>{}}});
+
+  try {
+    await wllama.loadModelFromUrl(`https://huggingface.co/${repo}/resolve/main/${file}.gguf`, {
+      n_ctx:512, n_gpu_layers:0,
+      n_threads:Math.min(navigator.hardwareConcurrency??2,4),
+      progressCallback:({loaded,total})=>{ if(total>0) setProgress(loaded,total); setStatus(`Downloading… ${total>0?Math.round(loaded/total*100)+'%':'?'}`); }
+    });
+    setProgress(1,1);
+    setStatus(`Ready — running ${tests.length} tests`);
+  } catch(e){ setStatus('Load failed: '+e.message); rb.disabled=false; return; }
+
+  addSection(modelType==='instruct'?'SmolLM2 — no echo, diverse examples':'GPT-2 — jargon seed, 2-word floor');
+
+  for(let i=0;i<tests.length;i++){
+    const tc=tests[i];
+    setStatus(`Test ${i+1}/${tests.length}: ${tc.label}`);
+    let raw='';
+    try {
+      const gen=await wllama.createCompletion({prompt:tc.prompt,stream:true,max_tokens:tc.maxTok,temperature:tc.temp,top_k:tc.topK,top_p:tc.topP,stop:tc.stop});
+      for await(const chunk of gen) raw+=chunk.choices[0]?.text??'';
+      raw=raw.trim();
+    } catch(e){ raw='[ERR:'+e.message.slice(0,25)+']'; }
+    const [pass,reason]=isPlausible(raw, requireTwoWords);
+    addRow(i+1,tc.label,raw,pass,reason);
+  }
+
+  const p=allResults.filter(r=>r.pass).length;
+  setStatus(`Done — ${p}/${tests.length} passed`);
+  await wllama.exit();
+  document.getElementById('cb').disabled=false;
+  rb.disabled=false;
+});
+
+document.getElementById('cb').addEventListener('click',()=>{
+  navigator.clipboard.writeText(JSON.stringify(allResults,null,2));
+  const b=document.getElementById('cb'); b.textContent='Copied!';
+  setTimeout(()=>b.textContent='Copy JSON',1500);
+});
+</script>
+</body>
+</html>

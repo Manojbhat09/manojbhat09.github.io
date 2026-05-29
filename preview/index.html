@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog — Manoj Bhat (Preview)</title>
+  <link rel="stylesheet" href="../blog/blog.css">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Animated hero ── */
+    .index-hero { position: relative; }
+
+    .hero-title-wrap {
+      position: relative;
+      height: 2.6rem;
+      overflow: hidden;
+      margin-bottom: .4rem;
+    }
+    .hero-title {
+      position: absolute;
+      inset: 0;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--coral);
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .45s ease, transform .45s ease;
+    }
+    .hero-title.visible { opacity: 1; transform: translateY(0); }
+    .hero-sub-wrap {
+      position: relative;
+      min-height: 1.4em;
+    }
+    .hero-sub {
+      position: absolute;
+      inset: 0;
+      font-size: 14px;
+      color: var(--muted);
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity .45s ease .1s, transform .45s ease .1s;
+    }
+    .hero-sub.visible { opacity: 1; transform: translateY(0); }
+
+    /* LM inline badge */
+    @keyframes lmpulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── Floating LM control button ── */
+    #lm-ctrl {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: .38rem 1rem;
+      font-size: 11px;
+      font-family: 'Lato', sans-serif;
+      color: var(--muted);
+      cursor: pointer;
+      z-index: 200;
+      transition: border-color .15s, color .15s, background .15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+      user-select: none;
+    }
+    #lm-ctrl:hover { border-color: var(--coral); color: var(--coral); }
+    #lm-ctrl.live  { border-color: #4CAF5055; }
+    #lm-ctrl.disabled-state { opacity: .7; }
+    #lm-ctrl-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    #lm-ctrl-dot.loading { background: #F5A623; animation: lmpulse 1s infinite; }
+    #lm-ctrl-dot.live    { background: #4CAF50; animation: lmpulse 2s infinite; }
+    #lm-ctrl-dot.off     { background: var(--muted); }
+
+    /* progress bar inside the button */
+    #lm-ctrl-bar {
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      width: 48px;
+      overflow: hidden;
+      display: none;
+    }
+    #lm-ctrl-bar.show { display: block; }
+    #lm-ctrl-bar-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--coral), #F5A623);
+      border-radius: 1px;
+      transition: width .25s ease;
+    }
+  </style>
+</head>
+<body class="blog-body">
+
+  <nav class="blog-nav">
+    <a href="../index.html" class="nav-home">Manoj Bhat</a>
+    <a href="https://scholar.google.com/citations?user=SKWv3BcAAAAJ" target="_blank">Scholar</a>
+    <a href="https://github.com/manojbhat09" target="_blank">GitHub</a>
+    <a href="wllama-test.html">LM Demo</a>
+  </nav>
+
+  <section class="index-hero">
+    <!-- Animated title -->
+    <div class="hero-title-wrap" id="title-wrap"></div>
+
+    <!-- Animated subtitle -->
+    <div class="hero-sub-wrap" id="sub-wrap"></div>
+
+  </section>
+
+  <!-- Floating LM control button (bottom-left, always visible) -->
+  <button id="lm-ctrl" aria-label="Toggle LM title generation">
+    <span id="lm-ctrl-dot" class="off"></span>
+    <div id="lm-ctrl-bar"><div id="lm-ctrl-bar-fill"></div></div>
+    <span id="lm-ctrl-text">LM: idle</span>
+  </button>
+
+  <hr class="index-divider">
+
+  <div class="tag-filter" id="tagFilter">
+    <span>Filter:</span>
+    <button class="tag-btn active" data-tag="all">All</button>
+    <button class="tag-btn" data-tag="autonomous-driving">Autonomous Driving</button>
+    <button class="tag-btn" data-tag="deep-learning">Deep Learning</button>
+    <button class="tag-btn" data-tag="generative-ai">Generative AI</button>
+    <button class="tag-btn" data-tag="lidar">LiDAR</button>
+    <button class="tag-btn" data-tag="motion-forecasting">Motion Forecasting</button>
+    <button class="tag-btn" data-tag="transformer">Transformer</button>
+  </div>
+
+  <div class="post-list" id="postList">
+    <div class="year-group" data-year="2025">
+      <div class="year-label">2025</div>
+      <a class="post-card" href="wayformer-post.html"
+         data-tags="motion-forecasting autonomous-driving transformer deep-learning">
+        <div class="card-date">Jan 15</div>
+        <div class="card-body">
+          <div class="card-title">Wayformer: Rethinking Motion Forecasting with Efficient Attention</div>
+          <div class="card-excerpt">A deep-dive into the Wayformer architecture — how factorized attention over agents and scene context achieves state-of-the-art trajectory prediction while staying practical for production AV stacks.</div>
+          <div class="card-meta">
+            <span class="card-read-time">~9 min</span>
+            <span class="tag tag-motion-forecasting">Motion Forecasting</span>
+            <span class="tag tag-autonomous-driving">Autonomous Driving</span>
+            <span class="tag tag-transformer">Transformer</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="year-group" data-year="2024">
+      <div class="year-label">2024</div>
+      <a class="post-card" href="polar-post.html"
+         data-tags="lidar autonomous-driving deep-learning">
+        <div class="card-date">Nov 10</div>
+        <div class="card-body">
+          <div class="card-title">Polar Space LiDAR: Why Coordinate Systems Are a Design Choice</div>
+          <div class="card-excerpt">How switching from Cartesian to polar coordinates for LiDAR point cloud processing cuts latency by 9× without hurting accuracy — and the non-obvious trade-offs involved.</div>
+          <div class="card-meta">
+            <span class="card-read-time">~8 min</span>
+            <span class="tag tag-lidar">LiDAR</span>
+            <span class="tag tag-autonomous-driving">Autonomous Driving</span>
+          </div>
+        </div>
+      </a>
+      <a class="post-card" href="neural-rendering-post.html"
+         data-tags="generative-ai autonomous-driving deep-learning robotics">
+        <div class="card-date">Aug 20</div>
+        <div class="card-body">
+          <div class="card-title">Neural Rendering for Autonomous Vehicle Simulation</div>
+          <div class="card-excerpt">How NeRF-based scene representations are replacing hand-crafted 3-D asset pipelines in AV simulation — what we built at Rivian, and where the method still breaks down.</div>
+          <div class="card-meta">
+            <span class="card-read-time">~7 min</span>
+            <span class="tag tag-generative-ai">Generative AI</span>
+            <span class="tag tag-autonomous-driving">Autonomous Driving</span>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════════════
+     Blog name cycling — single placeholder until LM is ready,
+     then cycles through LM-generated names every 3 s
+     ═══════════════════════════════════════════════════════════════ */
+  const PRE_LM = {
+    text: 'Working Notes',
+    sub:  'Writing on AI, autonomous systems, technology, and life — ideas worth thinking through, from the work and beyond.',
+  };
+
+  const pool = [];   /* { text, sub, titleEl, subEl } */
+  let   poolIdx = 0;
+  let   cycleTimer = null;
+  const titleWrap = document.getElementById('title-wrap');
+  const subWrap   = document.getElementById('sub-wrap');
+
+  function addToPool(text, sub) {
+    const isFirst = pool.length === 0;
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'hero-title' + (isFirst ? ' visible' : '');
+    titleEl.appendChild(document.createTextNode(text));
+    titleWrap.appendChild(titleEl);
+
+    const subEl = document.createElement('div');
+    subEl.className = 'hero-sub' + (isFirst ? ' visible' : '');
+    subEl.textContent = sub;
+    subWrap.appendChild(subEl);
+
+    pool.push({ text, sub, titleEl, subEl });
+  }
+
+  /* Show single placeholder — no cycling yet */
+  addToPool(PRE_LM.text, PRE_LM.sub);
+
+  function cycleNext() {
+    pool[poolIdx].titleEl.classList.remove('visible');
+    pool[poolIdx].subEl.classList.remove('visible');
+    poolIdx = (poolIdx + 1) % pool.length;
+    pool[poolIdx].titleEl.classList.add('visible');
+    pool[poolIdx].subEl.classList.add('visible');
+  }
+
+  /* Cycling starts only when LM is ready — see window.__lmNamesReady */
+
+  /* ── Floating LM control button ─────────────────────────────── */
+  const ctrlBtn  = document.getElementById('lm-ctrl');
+  const ctrlDot  = document.getElementById('lm-ctrl-dot');
+  const ctrlBar  = document.getElementById('lm-ctrl-bar');
+  const ctrlFill = document.getElementById('lm-ctrl-bar-fill');
+  const ctrlText = document.getElementById('lm-ctrl-text');
+
+  const LS_KEY = 'wllama_disabled';
+  let   lmActive = false;   /* true once model is ready */
+
+  function setCtrl(state, label, pct) {
+    ctrlDot.className = state;             /* 'off' | 'loading' | 'live' */
+    ctrlText.textContent = label;
+    if (pct !== undefined) {
+      ctrlBar.classList.add('show');
+      ctrlFill.style.width = pct + '%';
+    } else {
+      ctrlBar.classList.remove('show');
+    }
+    ctrlBtn.classList.toggle('live', state === 'live');
+    ctrlBtn.classList.toggle('disabled-state', state === 'off');
+  }
+
+  /* Initial state */
+  if (localStorage.getItem(LS_KEY) === 'true') {
+    setCtrl('off', 'LM off · click to enable');
+  } else {
+    setCtrl('loading', 'LM: starting…');
+  }
+
+  ctrlBtn.addEventListener('click', () => {
+    if (lmActive) {
+      /* Disable: stop model, set flag, switch to static-only */
+      if (window.wllamaRef) { try { window.wllamaRef.exit(); } catch(_){} window.wllamaRef = null; }
+      lmActive = false;
+      localStorage.setItem(LS_KEY, 'true');
+      setCtrl('off', 'LM off · click to enable');
+    } else if (localStorage.getItem(LS_KEY) === 'true') {
+      /* Re-enable: clear flag + reload */
+      localStorage.removeItem(LS_KEY);
+      location.reload();
+    }
+  });
+
+  /* Called by the module script when model is ready + names generated */
+  window.__lmNamesReady = function(names) {
+    names.forEach(({ text, sub }) => addToPool(text, sub));
+    lmActive = true;
+    setCtrl('live', 'LM live · click to disable');
+    /* Start cycling now that we have a meaningful pool */
+    cycleTimer = setInterval(cycleNext, 3000);
+  };
+
+  /* Called during download */
+  window.__lmProgress = function(pct, label) {
+    setCtrl('loading', label, pct);
+  };
+
+  /* Called on error */
+  window.__lmError = function(msg) {
+    setCtrl('off', 'LM failed · click to retry');
+    console.warn('[wllama]', msg);
+  };
+
+  /* ── Tag filter ─────────────────────────────────────────────── */
+  (function () {
+    const btns  = document.querySelectorAll('.tag-btn');
+    const cards = document.querySelectorAll('.post-card');
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tag = btn.dataset.tag;
+        btns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        cards.forEach(card => {
+          const tags = card.dataset.tags || '';
+          card.style.display = (tag === 'all' || tags.split(' ').includes(tag)) ? '' : 'none';
+        });
+        document.querySelectorAll('.year-group').forEach(g => {
+          const visible = Array.from(g.querySelectorAll('.post-card')).some(c => c.style.display !== 'none');
+          g.style.display = visible ? '' : 'none';
+        });
+      });
+    });
+  })();
+  </script>
+
+  <!-- wllama module: loads SmolLM2 Q3_K_M, generates names, calls window.__lmNamesReady -->
+  <script type="module">
+  import { Wllama } from '/assets/wllama/wllama.min.js';
+
+  /* Top-level return is illegal in modules — wrap everything */
+  if (localStorage.getItem('wllama_disabled') !== 'true') (async () => {
+
+  const MODEL_URL = 'https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q3_K_M.gguf';
+  const IM = (u, ap='') => `<|im_start|>user\n${u}<|im_end|>\n<|im_start|>assistant\n${ap}`;
+
+  /* 5 seeded prompts — SmolLM2 Q3_K_M echoes the first example reliably (tested, 5/5)
+     Seeds span life, tech, AI, and research broadly — not just AV/ML */
+  const SMOL_PROMPTS = [
+    { prompt: IM('Short creative blog name. Like "Field Notes". In quotes.', '"'),        seed:'Field Notes'   },
+    { prompt: IM('Short creative blog name. Like "Open Loop". In quotes.', '"'),          seed:'Open Loop'     },
+    { prompt: IM('Short creative blog name for a researcher. Like "Side Channel". In quotes.', '"'), seed:'Side Channel' },
+    { prompt: IM('Short creative blog name. Like "The Long Tail". In quotes.', '"'),      seed:'The Long Tail' },
+    { prompt: IM('Short creative blog name. Like "Deep End". In quotes.', '"'),           seed:'Deep End'      },
+  ];
+
+  const LM_SUBS = {
+    'Field Notes':   'Personal dispatches on AI, autonomous systems, life, and whatever is worth writing down.',
+    'Open Loop':     'Unresolved questions and half-finished ideas — from research, engineering, and beyond.',
+    'Side Channel':  'The byproducts: learnings from debugging, building, reading, and occasionally being wrong.',
+    'The Long Tail': 'On the 80% that does not make headlines — in ML, in life, and everywhere in between.',
+    'Deep End':      'Going all the way in — perception systems, language models, and the ideas that will not let go.',
+  };
+
+  const wllama = new Wllama(
+    { default: '/assets/wllama/wllama.wasm' },
+    { logger: { debug:()=>{}, log:()=>{}, warn:()=>{}, error:()=>{} } }
+  );
+  window.wllamaRef = wllama;   /* expose so ctrl button can call .exit() */
+
+  try {
+    await wllama.loadModelFromUrl(MODEL_URL, {
+      n_ctx: 512,
+      n_gpu_layers: 0,
+      n_threads: Math.min(navigator.hardwareConcurrency ?? 2, 4),
+      progressCallback: ({ loaded, total }) => {
+        if (total > 0) {
+          const pct = Math.round(loaded / total * 100);
+          window.__lmProgress?.(pct, `downloading… ${pct}%`);
+        }
+      },
+    });
+
+    window.__lmProgress?.(100, 'generating names…');
+
+    const generated = [];
+    for (const { prompt, seed } of SMOL_PROMPTS) {
+      try {
+        const gen = await wllama.createCompletion({
+          prompt, stream: true,
+          max_tokens: 15, temperature: 0.9, top_k: 35, top_p: 0.6,
+          stop: ['"'],
+        });
+        let raw = '';
+        for await (const chunk of gen) raw += chunk.choices[0]?.text ?? '';
+        raw = raw.trim();
+        /* Fall back to seed if output is empty, too long, has bad chars, or echoes the prompt */
+        const _echo = /^(blog name like|creative blog|short ml blog|short av|short creative|a creative|here'?s|one ml|give me|creative ml|ai for)/i;
+        const name = (raw.length >= 3 && raw.length <= 35 && !/[<>&":]/.test(raw) && !_echo.test(raw)) ? raw : seed;
+        const sub  = LM_SUBS[seed] ?? LM_SUBS[name] ?? '';
+        generated.push({ text: name, sub });
+      } catch(_) {
+        /* On any generation error, use the seed name directly */
+        generated.push({ text: seed, sub: LM_SUBS[seed] ?? '' });
+      }
+    }
+
+    window.__lmNamesReady?.(generated);
+
+  } catch (err) {
+    window.__lmError?.(err.message);
+  }
+  })(); /* end async IIFE */
+  </script>
+
+</body>
+</html>

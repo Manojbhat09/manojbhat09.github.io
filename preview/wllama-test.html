@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>wllama + GPT-2 Q2_K — Browser Inference Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --coral:#CC785C; --coral-d:#A85F42; --coral-l:#2A1810;
+      --bg:#0D0D0D; --surface:#1A1A1A; --surface2:#252525;
+      --border:#2E2E2E; --text:#E8E4DF; --muted:#888;
+      --green:#4CAF50; --amber:#F5A623; --red:#F44336;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:'Lato',sans-serif;font-size:14px;line-height:1.6;min-height:100vh}
+
+    /* nav */
+    .nav{display:flex;align-items:center;gap:1rem;padding:.8rem 1.5rem;border-bottom:1px solid var(--border);background:var(--surface)}
+    .nav a{color:var(--coral);text-decoration:none;font-size:13px}
+    .nav-title{flex:1;font-weight:700;font-size:14px}
+    .badge{background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:2px 9px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+
+    /* layout */
+    .layout{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 48px)}
+
+    /* left panel */
+    .left{border-right:1px solid var(--border);padding:1.25rem;display:flex;flex-direction:column;gap:1rem;overflow-y:auto}
+    .slabel{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem}
+
+    .model-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.9rem}
+    .model-name{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--coral);margin-bottom:.4rem}
+    .model-meta{font-size:12px;color:var(--muted);line-height:1.9}
+    .model-meta span{color:var(--text)}
+
+    .status-row{display:flex;align-items:center;gap:.6rem;font-size:12.5px}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
+    .dot.loading{background:var(--amber);animation:pulse 1s infinite}
+    .dot.ready{background:var(--green)}
+    .dot.error{background:var(--red)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    .progress-track{background:var(--surface2);border-radius:4px;height:5px;overflow:hidden;margin-top:.6rem}
+    .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--coral),var(--amber));transition:width .25s ease;border-radius:4px}
+    .progress-lbl{font-size:11px;color:var(--muted);margin-top:.25rem;font-family:'JetBrains Mono',monospace}
+
+    .btn-load{width:100%;padding:.6rem 1rem;background:var(--coral);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s}
+    .btn-load:hover{background:var(--coral-d)}
+    .btn-load:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed}
+
+    .param-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem}
+    .param-row label{font-size:12px;color:var(--muted);width:80px;flex-shrink:0}
+    .param-row input{flex:1;accent-color:var(--coral)}
+    .param-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);min-width:2.8rem;text-align:right}
+
+    .tip-box{font-size:11.5px;color:var(--muted);line-height:1.7;padding:.7rem;background:var(--surface);border-radius:6px;border:1px solid var(--border)}
+    .tip-box strong{color:var(--text)}
+
+    /* right panel */
+    .right{display:flex;flex-direction:column;overflow:hidden}
+
+    /* tabs */
+    .tabs{display:flex;border-bottom:1px solid var(--border);padding:0 1.25rem;background:var(--surface)}
+    .tab{padding:.65rem .9rem;font-size:12.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-1px;user-select:none}
+    .tab:hover{color:var(--text)}
+    .tab.active{color:var(--coral);border-bottom-color:var(--coral)}
+
+    .pane{display:none;flex:1;overflow:hidden;flex-direction:column}
+    .pane.active{display:flex}
+
+    /* playground */
+    .prompt-area{flex-shrink:0;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+    .prompt-area textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.65;padding:.7rem .9rem;resize:vertical;min-height:80px;outline:none;transition:border-color .15s}
+    .prompt-area textarea:focus{border-color:var(--coral)}
+    .prompt-footer{display:flex;align-items:center;justify-content:space-between;margin-top:.5rem}
+    .prompt-hint{font-size:11px;color:var(--muted)}
+    .btn-gen{padding:.45rem 1.1rem;background:var(--coral);color:#fff;border:none;border-radius:6px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s}
+    .btn-gen:hover{background:var(--coral-d)}
+    .btn-gen:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed}
+
+    .output-area{flex:1;padding:1rem 1.25rem;overflow-y:auto}
+    .out-box{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.9rem;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.8;min-height:100px;white-space:pre-wrap;word-break:break-word}
+    .out-prompt{color:var(--muted)}
+    .out-text{color:#A8D8A8}
+    .out-cursor::after{content:'▋';color:var(--coral);animation:blink .7s infinite}
+    .out-placeholder{color:var(--muted);font-style:italic}
+    .out-error{color:var(--red)}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    .gen-stats{margin-top:.4rem;font-size:11px;color:var(--muted)}
+
+    /* names tab */
+    .names-pane-inner{flex:1;overflow-y:auto;padding:1rem 1.25rem}
+    .names-info{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:.75rem}
+    .btn-gen-names{padding:.45rem 1rem;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s;margin-bottom:.9rem}
+    .btn-gen-names:hover{border-color:var(--coral);color:var(--coral)}
+    .btn-gen-names:disabled{opacity:.4;cursor:not-allowed}
+    .chips{display:flex;flex-wrap:wrap;gap:.5rem}
+    .chip{background:var(--surface);border:1.5px solid var(--border);border-radius:999px;padding:.3rem .85rem;font-size:12.5px;color:var(--text);display:flex;align-items:center;gap:.35rem;transition:all .2s}
+    .chip.active{border-color:var(--coral);color:var(--coral);background:var(--coral-l)}
+    .chip.generated{border-color:var(--green);color:var(--green)}
+    .chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:0}
+    .chip.active .chip-dot,.chip.generated .chip-dot{opacity:1}
+
+    /* log */
+    .log-inner{flex:1;overflow-y:auto;padding:.75rem 1.25rem}
+    .log-line{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.7;color:var(--muted)}
+    .log-line .ts{color:#444}
+    .log-line.ok .msg{color:var(--green)}
+    .log-line.warn .msg{color:var(--amber)}
+    .log-line.err .msg{color:var(--red)}
+    .log-line.info .msg{color:var(--text)}
+
+    /* error banner */
+    #err-banner{display:none;background:#3A1010;border:1px solid var(--red);border-radius:6px;padding:.7rem 1rem;font-size:12.5px;color:var(--red);margin:.75rem 1.25rem}
+
+    @media(max-width:700px){.layout{grid-template-columns:1fr}.left{display:none}}
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">← Blog</a>
+  <div class="nav-title">wllama + GPT-2 Q2_K &mdash; Browser Inference</div>
+  <span class="badge">local WASM · no server</span>
+</nav>
+
+<div class="layout">
+
+  <!-- LEFT ─── model controls -->
+  <div class="left">
+
+    <div>
+      <div class="slabel">Model</div>
+      <select id="model-select" style="width:100%;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.5rem .6rem;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;margin-bottom:.6rem"></select>
+      <div class="model-card">
+        <div class="model-name" id="mc-name">—</div>
+        <div class="model-meta" id="mc-meta"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="slabel">Status</div>
+      <div class="status-row">
+        <div class="dot" id="s-dot"></div>
+        <span id="s-text" style="color:var(--muted)">Idle — pick a model and Load</span>
+      </div>
+      <div class="progress-track" style="margin-top:.6rem">
+        <div class="progress-fill" id="prog-bar"></div>
+      </div>
+      <div class="progress-lbl" id="prog-lbl"></div>
+    </div>
+
+    <button class="btn-load" id="btn-load">⬇ Load Model</button>
+
+    <div>
+      <div class="slabel">Sampling</div>
+      <div class="param-row">
+        <label>Max tokens</label>
+        <input type="range" id="p-tokens" min="16" max="128" value="64" step="8">
+        <span class="param-val" id="v-tokens">64</span>
+      </div>
+      <div class="param-row">
+        <label>Temperature</label>
+        <input type="range" id="p-temp" min="0.1" max="1.5" value="0.8" step="0.05">
+        <span class="param-val" id="v-temp">0.80</span>
+      </div>
+      <div class="param-row">
+        <label>Top-K</label>
+        <input type="range" id="p-topk" min="10" max="80" value="40" step="5">
+        <span class="param-val" id="v-topk">40</span>
+      </div>
+      <div class="param-row">
+        <label>Top-P</label>
+        <input type="range" id="p-topp" min="0.5" max="1.0" value="0.95" step="0.05">
+        <span class="param-val" id="v-topp">0.95</span>
+      </div>
+    </div>
+
+    <div class="tip-box" id="tip-box">
+      <strong>GPT-2 is a completion model.</strong> It works best with
+      list-continuation prompts ("Item 1, Item 2, ") not chat-style questions.
+    </div>
+
+  </div>
+
+  <!-- RIGHT ── playground -->
+  <div class="right">
+
+    <div class="tabs">
+      <div class="tab active" data-pane="playground">Playground</div>
+      <div class="tab" data-pane="names">Blog Name Generator</div>
+      <div class="tab" data-pane="log">Console</div>
+    </div>
+
+    <!-- error banner (shown on load/generate failure) -->
+    <div id="err-banner"></div>
+
+    <!-- Playground pane -->
+    <div class="pane active" id="pane-playground">
+      <div class="prompt-area">
+        <div class="slabel" style="margin-bottom:.4rem">Prompt &mdash; GPT-2 continues from here</div>
+        <textarea id="prompt-in">Popular machine learning blogs: "Distill", "The Gradient", "Import AI", "The Batch", "Interconnects", "Loss Landscapes", "Ahead of AI", "Latent Space", "</textarea>
+        <div class="prompt-footer">
+          <span class="prompt-hint">Tip: end with an open quote for best list completions</span>
+          <button class="btn-gen" id="btn-gen" disabled>Generate →</button>
+        </div>
+      </div>
+      <div class="output-area">
+        <div class="slabel" style="margin-bottom:.4rem">Output</div>
+        <div class="out-box" id="out-box">
+          <span class="out-placeholder">Load the model, then click Generate.</span>
+        </div>
+        <div class="gen-stats" id="gen-stats"></div>
+      </div>
+    </div>
+
+    <!-- Blog names pane -->
+    <div class="pane" id="pane-names">
+      <div class="names-pane-inner">
+        <div class="names-info">
+          These names cycle on the blog index every 3 s. Highlighted = currently active.<br>
+          Load the model then click <strong style="color:var(--text)">Generate more</strong> to let GPT-2 suggest new ones.
+        </div>
+        <button class="btn-gen-names" id="btn-gen-names" disabled>✦ Generate more names with GPT-2</button>
+        <div class="chips" id="chips"></div>
+      </div>
+    </div>
+
+    <!-- Log pane -->
+    <div class="pane" id="pane-log">
+      <div class="log-inner" id="log-inner"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── UI script (runs unconditionally — tabs/params always work) ── -->
+<script>
+/* ── Model registry ── */
+const MODELS = [
+  /* ── GPT-2 Small (tensorblock) ─────────────────────────────────────── */
+  { group:'GPT-2 Small · 117M (tensorblock)',
+    label:'★ Q3_K_M  ≈ 55 MB  [RECOMMENDED]', file:'gpt2-Q3_K_M.gguf',
+    repo:'tensorblock/gpt2-GGUF', params:'117M', size:'~55 MB', type:'completion', recommended:true },
+  { group:'GPT-2 Small · 117M (tensorblock)',
+    label:'Q2_K  ≈ 45 MB',               file:'gpt2-Q2_K.gguf',
+    repo:'tensorblock/gpt2-GGUF',        params:'117M', size:'~45 MB', type:'completion' },
+
+  /* ── BabyLM GPT-2 eval-0 (mradermacher) ────────────────────────────── */
+  { group:'BabyLM GPT-2 eval-0 · 117M (mradermacher)',
+    label:'Q2_K  ≈ 45 MB',  file:'babylm-student-gpt2-eval-0.Q2_K.gguf',
+    repo:'mradermacher/babylm-student-gpt2-eval-0-GGUF', params:'117M', size:'~45 MB', type:'completion' },
+  { group:'BabyLM GPT-2 eval-0 · 117M (mradermacher)',
+    label:'Q3_K_S  ≈ 52 MB', file:'babylm-student-gpt2-eval-0.Q3_K_S.gguf',
+    repo:'mradermacher/babylm-student-gpt2-eval-0-GGUF', params:'117M', size:'~52 MB', type:'completion' },
+
+  /* ── BabyLM GPT-2-0 (mradermacher) ──────────────────────────────────── */
+  { group:'BabyLM GPT-2-0 · 117M (mradermacher)',
+    label:'Q2_K  ≈ 45 MB',   file:'babylm-student-gpt2-0.Q2_K.gguf',
+    repo:'mradermacher/babylm-student-gpt2-0-GGUF', params:'117M', size:'~45 MB', type:'completion' },
+  { group:'BabyLM GPT-2-0 · 117M (mradermacher)',
+    label:'Q3_K_S  ≈ 52 MB', file:'babylm-student-gpt2-0.Q3_K_S.gguf',
+    repo:'mradermacher/babylm-student-gpt2-0-GGUF', params:'117M', size:'~52 MB', type:'completion' },
+  { group:'BabyLM GPT-2-0 · 117M (mradermacher)',
+    label:'Q3_K_M  ≈ 55 MB', file:'babylm-student-gpt2-0.Q3_K_M.gguf',
+    repo:'mradermacher/babylm-student-gpt2-0-GGUF', params:'117M', size:'~55 MB', type:'completion' },
+
+  /* ── GPT2-Small-BabyLM-CE (mradermacher) ───────────────────────────── */
+  { group:'GPT2-Small-BabyLM-CE · 117M (mradermacher)',
+    label:'Q2_K  ≈ 45 MB',   file:'GPT2-Small-BabyLM-CE.Q2_K.gguf',
+    repo:'mradermacher/GPT2-Small-BabyLM-CE-GGUF', params:'117M', size:'~45 MB', type:'completion' },
+  { group:'GPT2-Small-BabyLM-CE · 117M (mradermacher)',
+    label:'Q3_K_S  ≈ 52 MB', file:'GPT2-Small-BabyLM-CE.Q3_K_S.gguf',
+    repo:'mradermacher/GPT2-Small-BabyLM-CE-GGUF', params:'117M', size:'~52 MB', type:'completion' },
+  { group:'GPT2-Small-BabyLM-CE · 117M (mradermacher)',
+    label:'Q3_K_L  ≈ 58 MB', file:'GPT2-Small-BabyLM-CE.Q3_K_L.gguf',
+    repo:'mradermacher/GPT2-Small-BabyLM-CE-GGUF', params:'117M', size:'~58 MB', type:'completion' },
+  { group:'GPT2-Small-BabyLM-CE · 117M (mradermacher)',
+    label:'Q4_K_S  ≈ 65 MB', file:'GPT2-Small-BabyLM-CE.Q4_K_S.gguf',
+    repo:'mradermacher/GPT2-Small-BabyLM-CE-GGUF', params:'117M', size:'~65 MB', type:'completion' },
+  { group:'GPT2-Small-BabyLM-CE · 117M (mradermacher)',
+    label:'Q4_K_M  ≈ 68 MB', file:'GPT2-Small-BabyLM-CE.Q4_K_M.gguf',
+    repo:'mradermacher/GPT2-Small-BabyLM-CE-GGUF', params:'117M', size:'~68 MB', type:'completion' },
+  { group:'GPT2-Small-BabyLM-CE · 117M (mradermacher)',
+    label:'Q5_K_S  ≈ 75 MB', file:'GPT2-Small-BabyLM-CE.Q5_K_S.gguf',
+    repo:'mradermacher/GPT2-Small-BabyLM-CE-GGUF', params:'117M', size:'~75 MB', type:'completion' },
+  { group:'GPT2-Small-BabyLM-CE · 117M (mradermacher)',
+    label:'Q5_K_M  ≈ 78 MB', file:'GPT2-Small-BabyLM-CE.Q5_K_M.gguf',
+    repo:'mradermacher/GPT2-Small-BabyLM-CE-GGUF', params:'117M', size:'~78 MB', type:'completion' },
+
+  /* ── SmolLM2-135M-Instruct (bartowski) — actual HF sizes ───────────── */
+  /* Tested: Q3_K_M = 5/5 clean (matches lmstudio Q3_K_L); Q3_K_S = 4/5; Q2_K = 3/5 */
+  { group:'SmolLM2-135M-Instruct (bartowski)',
+    label:'★ Q3_K_M  89 MB  [RECOMMENDED]', file:'SmolLM2-135M-Instruct-Q3_K_M.gguf',
+    repo:'bartowski/SmolLM2-135M-Instruct-GGUF', params:'135M', size:'89 MB', type:'instruct', recommended:true },
+  { group:'SmolLM2-135M-Instruct (bartowski)',
+    label:'Q3_K_S  84 MB',   file:'SmolLM2-135M-Instruct-Q3_K_S.gguf',
+    repo:'bartowski/SmolLM2-135M-Instruct-GGUF', params:'135M', size:'84 MB', type:'instruct' },
+  { group:'SmolLM2-135M-Instruct (bartowski)',
+    label:'IQ3_XS  84 MB',   file:'SmolLM2-135M-Instruct-IQ3_XS.gguf',
+    repo:'bartowski/SmolLM2-135M-Instruct-GGUF', params:'135M', size:'84 MB', type:'instruct' },
+  { group:'SmolLM2-135M-Instruct (bartowski)',
+    label:'Q2_K    84 MB',   file:'SmolLM2-135M-Instruct-Q2_K.gguf',
+    repo:'bartowski/SmolLM2-135M-Instruct-GGUF', params:'135M', size:'84 MB', type:'instruct' },
+  { group:'SmolLM2-135M-Instruct (bartowski)',
+    label:'Q2_K_L  84 MB',   file:'SmolLM2-135M-Instruct-Q2_K_L.gguf',
+    repo:'bartowski/SmolLM2-135M-Instruct-GGUF', params:'135M', size:'84 MB', type:'instruct' },
+  { group:'SmolLM2-135M-Instruct (bartowski)',
+    label:'Q3_K_XL 93 MB',   file:'SmolLM2-135M-Instruct-Q3_K_XL.gguf',
+    repo:'bartowski/SmolLM2-135M-Instruct-GGUF', params:'135M', size:'93 MB', type:'instruct' },
+  { group:'SmolLM2-135M-Instruct (bartowski)',
+    label:'Q4_0    88 MB',   file:'SmolLM2-135M-Instruct-Q4_0.gguf',
+    repo:'bartowski/SmolLM2-135M-Instruct-GGUF', params:'135M', size:'88 MB', type:'instruct' },
+  { group:'SmolLM2-135M-Instruct (bartowski)',
+    label:'Q4_0_8_8 88 MB',  file:'SmolLM2-135M-Instruct-Q4_0_8_8.gguf',
+    repo:'bartowski/SmolLM2-135M-Instruct-GGUF', params:'135M', size:'88 MB', type:'instruct' },
+
+  /* ── SmolLM2-135M-Instruct (lmstudio-community) ─────────────────────── */
+  { group:'SmolLM2-135M-Instruct (lmstudio-community)',
+    label:'Q3_K_L  93 MB', file:'SmolLM2-135M-Instruct-Q3_K_L.gguf',
+    repo:'lmstudio-community/SmolLM2-135M-Instruct-GGUF', params:'135M', size:'93 MB', type:'instruct' },
+];
+
+function selectedModel() { return MODELS[+document.getElementById('model-select').value]; }
+
+function modelUrl(m) {
+  return `https://huggingface.co/${m.repo}/resolve/main/${m.file}`;
+}
+
+/* Must be declared before buildSelect() IIFE calls updateModelCard() */
+const PLAYGROUND_PROMPT = {
+  completion: 'Popular machine learning blogs: "Distill", "The Gradient", "Import AI", "The Batch", "Interconnects", "Loss Landscapes", "Ahead of AI", "Latent Space", "',
+  instruct:   '<|im_start|>user\nList 5 creative 2-3 word blog names for an ML researcher. Be concise — names only, numbered.\n<|im_end|>\n<|im_start|>assistant\n1.',
+};
+
+/* Build grouped <select> */
+(function buildSelect() {
+  const sel = document.getElementById('model-select');
+  const groups = {};
+  MODELS.forEach((m, i) => {
+    if (!groups[m.group]) groups[m.group] = [];
+    groups[m.group].push({ m, i });
+  });
+  Object.entries(groups).forEach(([g, items]) => {
+    const og = document.createElement('optgroup');
+    og.label = g;
+    items.forEach(({ m, i }) => {
+      const o = document.createElement('option');
+      o.value = i;
+      o.textContent = m.label;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  updateModelCard();
+})();
+
+function updateModelCard() {
+  const m = selectedModel();
+  document.getElementById('mc-name').textContent = m.file;
+  document.getElementById('mc-meta').innerHTML =
+    `Params <span>${m.params}</span><br>` +
+    `Size   <span>${m.size}</span><br>` +
+    `Type   <span>${m.type === 'instruct' ? '💬 instruct (chat template)' : '📝 completion (autocomplete)'}</span><br>` +
+    `Repo   <span style="font-size:10px">${m.repo}</span>`;
+  const tip = document.getElementById('tip-box');
+  const promptIn = document.getElementById('prompt-in');
+  if (m.type === 'instruct') {
+    tip.innerHTML = '<strong>SmolLM2 instruct model.</strong> Uses <code>&lt;|im_start|&gt;</code> chat template. Ask for names directly — one line per name works best.';
+    promptIn.value = PLAYGROUND_PROMPT.instruct;
+  } else {
+    tip.innerHTML = '<strong>Completion model.</strong> Works best with list-continuation prompts — end with an open quote so GPT-2 naturally completes the next list item.';
+    promptIn.value = PLAYGROUND_PROMPT.completion;
+  }
+  const btn = document.getElementById('btn-load');
+  btn.textContent = `⬇ Load Model (${m.size})`;
+}
+
+document.getElementById('model-select').addEventListener('change', () => {
+  updateModelCard();
+  const wasLoaded = document.getElementById('btn-load').textContent.startsWith('✓');
+  if (wasLoaded) {
+    const dot = document.getElementById('s-dot');
+    const txt = document.getElementById('s-text');
+    dot.className = 'dot';
+    txt.style.color = 'var(--amber)';
+    txt.textContent = 'Model changed — click Load to switch';
+    document.getElementById('btn-load').disabled = false;
+    document.getElementById('btn-load').textContent = `⬇ Load Model (${selectedModel().size})`;
+    document.getElementById('btn-gen').disabled = true;
+    document.getElementById('btn-gen-names').disabled = true;
+  }
+});
+
+/* tabs */
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    const id = t.dataset.pane;
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('pane-' + id).classList.add('active');
+  });
+});
+
+/* param sliders */
+[['p-tokens','v-tokens',v=>v],
+ ['p-temp','v-temp',v=>parseFloat(v).toFixed(2)],
+ ['p-topk','v-topk',v=>v],
+ ['p-topp','v-topp',v=>parseFloat(v).toFixed(2)]
+].forEach(([id, vid, fmt]) => {
+  const el = document.getElementById(id);
+  const vl = document.getElementById(vid);
+  el.addEventListener('input', () => vl.textContent = fmt(el.value));
+});
+
+/* blog name cycling */
+const NAMES = [
+  {text:'Research Log',   sub:'Writing on autonomous vehicles, motion forecasting, LiDAR perception, and ML systems engineering.'},
+  {text:'Field Notes',    sub:'Observations from the frontier of autonomous systems and machine learning research.'},
+  {text:'Lab Notebook',   sub:'Experiments, derivations, and engineering lessons from building production AI systems.'},
+  {text:'Neural Dispatch',sub:'Deep dives into the networks, datasets, and systems that make machines see and move.'},
+  {text:'Paper Trails',   sub:'Following the research thread from arXiv preprints to production deployments.'},
+  {text:'The Gradient',   sub:'Technical writing at the intersection of theory and practice in autonomous AI.'},
+  {text:'Stack Traces',   sub:'From loss curves to launch — engineering notes on ML at scale.'},
+  {text:'Signal Notes',   sub:'Catching the signal in the noise of autonomous vehicle research and development.'},
+];
+let nameIdx = 0;
+
+function renderChips() {
+  const grid = document.getElementById('chips');
+  grid.innerHTML = NAMES.map((n,i) => `
+    <div class="chip ${i===nameIdx?'active':''}" data-idx="${i}">
+      <span class="chip-dot"></span>${n.text}
+    </div>`).join('');
+}
+renderChips();
+
+setInterval(() => {
+  nameIdx = (nameIdx + 1) % NAMES.length;
+  document.querySelectorAll('#chips .chip').forEach((c,i) =>
+    c.classList.toggle('active', i === nameIdx));
+}, 3000);
+
+/* logging */
+function addLog(msg, level='info') {
+  const ts = new Date().toISOString().slice(11,23);
+  const el = document.createElement('div');
+  el.className = `log-line ${level}`;
+  el.innerHTML = `<span class="ts">${ts}</span>  <span class="msg">${msg}</span>`;
+  const logEl = document.getElementById('log-inner');
+  logEl.appendChild(el);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setStatus(state, msg) {
+  const dot = document.getElementById('s-dot');
+  const txt = document.getElementById('s-text');
+  dot.className = 'dot ' + state;
+  txt.textContent = msg;
+  txt.style.color = state==='ready'?'var(--green)':state==='error'?'var(--red)':'var(--muted)';
+}
+
+function showErr(msg) {
+  const b = document.getElementById('err-banner');
+  b.style.display = 'block';
+  b.textContent = '⚠ ' + msg;
+}
+function hideErr() { document.getElementById('err-banner').style.display = 'none'; }
+
+addLog('UI ready — wllama WASM bundled locally at /assets/wllama/');
+addLog('Click "Load Model" to fetch gpt2-Q2_K.gguf from HuggingFace (~45 MB)');
+</script>
+
+<!-- ── wllama module script (errors isolated from UI) ── -->
+<script type="module">
+import { Wllama } from '/assets/wllama/wllama.min.js';
+
+/* pathConfig: only 'default' key is mandatory — points to local WASM */
+const PATH_CONFIG = {
+  default: '/assets/wllama/wllama.wasm',
+};
+
+let wllama = null;
+let modelReady = false;
+
+const btnLoad    = document.getElementById('btn-load');
+const btnGen     = document.getElementById('btn-gen');
+const btnGenNames= document.getElementById('btn-gen-names');
+const outBox     = document.getElementById('out-box');
+const progBar    = document.getElementById('prog-bar');
+const progLbl    = document.getElementById('prog-lbl');
+const genStats   = document.getElementById('gen-stats');
+const promptIn   = document.getElementById('prompt-in');
+
+function getParams() {
+  return {
+    max_tokens: parseInt(document.getElementById('p-tokens').value),
+    temperature: parseFloat(document.getElementById('p-temp').value),
+    top_k: parseInt(document.getElementById('p-topk').value),
+    top_p: parseFloat(document.getElementById('p-topp').value),
+  };
+}
+
+/* ── Load model ── */
+btnLoad.addEventListener('click', async () => {
+  btnLoad.disabled = true;
+  btnLoad.textContent = 'Loading…';
+  hideErr();
+  setStatus('loading', 'Initializing WASM runtime…');
+  addLog('Creating Wllama instance with local WASM…');
+
+  try {
+    /* tear down any previously loaded model */
+    if (wllama) { try { await wllama.exit(); } catch(_){} wllama = null; modelReady = false; }
+    wllama = new Wllama(PATH_CONFIG, {
+      logger: {
+        debug: ()=>{},
+        // filter out the wall of WebGPU noise — only show concise lines
+        log:  m => { if (!m.includes('ggml_webgpu') && !m.includes('Aborted')) addLog('[wllama] ' + m); },
+        warn: m => { if (!m.includes('ggml_webgpu') && !m.includes('Aborted')) addLog('[wllama] ' + m, 'warn'); },
+        error:m => { if (!m.includes('ggml_webgpu') && !m.includes('Aborted')) addLog('[wllama] ' + m, 'err'); },
+      }
+    });
+
+    const MODEL_URL = modelUrl(selectedModel());
+    addLog(`Fetching ${selectedModel().file} from HuggingFace…`);
+    setStatus('loading', 'Downloading model…');
+
+    await wllama.loadModelFromUrl(MODEL_URL, {
+      n_ctx: 512,
+      n_gpu_layers: 0,   // force CPU-only — avoids WebGPU subgroups crash on stable Chrome
+      n_threads: Math.min(navigator.hardwareConcurrency ?? 2, 4),
+      progressCallback: ({ loaded, total }) => {
+        if (total > 0) {
+          const pct = Math.round(loaded / total * 100);
+          progBar.style.width = pct + '%';
+          progLbl.textContent = `${(loaded/1e6).toFixed(1)} / ${(total/1e6).toFixed(1)} MB (${pct}%)`;
+          setStatus('loading', `Downloading… ${pct}%`);
+        }
+      }
+    });
+
+    modelReady = true;
+    progBar.style.width = '100%';
+    progLbl.textContent = 'Ready';
+    const sm = selectedModel();
+    setStatus('ready', `${sm.file} · ${sm.params} · ${sm.size}`);
+    addLog('Model loaded ✓', 'ok');
+    btnLoad.textContent = '✓ Model loaded';
+    document.getElementById('model-select').disabled = true;
+    btnGen.disabled = false;
+    btnGenNames.disabled = false;
+
+  } catch (err) {
+    setStatus('error', 'Load failed — see Console tab');
+    addLog('Load error: ' + err.message, 'err');
+    showErr(err.message);
+    btnLoad.disabled = false;
+    btnLoad.textContent = '↺ Retry Load';
+    document.getElementById('model-select').disabled = false;
+    console.error(err);
+  }
+});
+
+/* ── Run completion (streaming) ── */
+async function runCompletion(prompt) {
+  if (!modelReady) return null;
+  const params = getParams();
+  const t0 = performance.now();
+
+  outBox.innerHTML = `<span class="out-prompt">${esc(prompt)}</span><span class="out-text out-cursor"></span>`;
+  const span = outBox.querySelector('.out-text');
+
+  addLog(`Generating: max_tokens=${params.max_tokens} temp=${params.temperature} top_k=${params.top_k}`);
+  genStats.textContent = '';
+
+  try {
+    /* stream:true returns an async generator of RawCompletionChunk */
+    const gen = await wllama.createCompletion({
+      prompt,
+      stream: true,
+      max_tokens: params.max_tokens,
+      temperature: params.temperature,
+      top_k: params.top_k,
+      top_p: params.top_p,
+    });
+
+    let full = '';
+    for await (const chunk of gen) {
+      full += chunk.choices[0]?.text ?? '';
+      span.textContent = full;
+    }
+    span.classList.remove('out-cursor');
+
+    const secs = ((performance.now() - t0)/1000).toFixed(1);
+    const tps  = (params.max_tokens / parseFloat(secs)).toFixed(1);
+    genStats.textContent = `${params.max_tokens} tokens · ${secs}s · ${tps} tok/s`;
+    addLog(`Done in ${secs}s (${tps} tok/s)`, 'ok');
+    return full;
+
+  } catch (err) {
+    span.classList.remove('out-cursor');
+    span.className = 'out-error';
+    span.textContent = '\n[Error: ' + err.message + ']';
+    addLog('Generation error: ' + err.message, 'err');
+    showErr(err.message);
+    console.error(err);
+    return null;
+  }
+}
+
+/* playground button */
+btnGen.addEventListener('click', async () => {
+  btnGen.disabled = true;
+  btnGen.textContent = 'Generating…';
+  hideErr();
+  await runCompletion(promptIn.value);
+  btnGen.disabled = false;
+  btnGen.textContent = 'Generate →';
+});
+
+/* ── Blog names generator ──────────────────────────────────────────────── */
+/*
+ * Findings from 3 rounds of headless playwright testing:
+ *
+ * GPT-2 Q3_K_M (completion):
+ *   - List-continuation with jargon seeds + stop:['"','\n',','] works.
+ *   - 2-word minimum required — single-word outputs are often proper names
+ *     ("Alfred", "Hexar") or too generic ("Risk", "Mint").
+ *   - Diverse: never repeats the same name across calls. ✓
+ *   - Not domain-anchored: produces creative but not specifically ML names.
+ *     This is acceptable — "The Kestrel", "Tail Analysis", "The Maven" work
+ *     as creative blog names even without ML jargon.
+ *
+ * SmolLM2 Q3_K_L (instruct):
+ *   - Echoes the FIRST example in the prompt reliably (temp 0.7–1.2).
+ *   - Use this echo behavior productively: each prompt seeds a desired name.
+ *   - Format: prime assistant with `"`, stop at `"` — only format that works.
+ *   - Without an example it generates long chatty responses (all fail length).
+ *
+ * Optimal params: temp=0.9, topK=35, topP=0.6, maxTok=20, stop=['"','\n',',']
+ */
+
+/* GPT-2: 5 jargon-seeded list-continuation prompts (one name per call) */
+const GPT2_NAME_PROMPTS = [
+  'ML blogs: "Gradient Tape", "Loss Landscape", "Backprop Notes", "Feature Space", "The Kernel", "',
+  'AV research blogs: "Sensor Fusion", "Ego Motion", "Road Graph", "Sparse Lidar", "The Detector", "',
+  'AI research blogs: "Attention Span", "Weight Decay", "Batch Norm", "The Encoder", "Dead Neurons", "',
+  'ML engineering blogs: "Model Soup", "Latent Walk", "The Residual", "Sparse Signal", "Tail Analysis", "',
+  'Robotics/ML blogs: "State Space", "Reward Trace", "Sim Gap", "Policy Grad", "The Planner", "',
+];
+
+const IM = (u, ap='') => `<|im_start|>user\n${u}<|im_end|>\n<|im_start|>assistant\n${ap}`;
+
+/* SmolLM2: 5 prompts each seeding a different name via echo behavior.
+ * Tested Q3_K_M (bartowski): 5/5 clean on all seeds below. */
+const SMOL_NAME_PROMPTS = [
+  IM('Short ML blog name. Like "Gradient Tape". In quotes.', '"'),
+  IM('Short ML blog name. Like "Loss Landscape". In quotes.', '"'),
+  IM('Short ML blog name. Like "Latent Walk". In quotes.', '"'),
+  IM('Short ML blog name. Like "Dead Neurons". In quotes.', '"'),
+  IM('Short AV research blog name. Like "Ego Motion". In quotes.', '"'),
+];
+
+/* Filter — informed by test results */
+const _BLOCKLIST  = /\b(military|grammy|hollywood|travelling|travel|new york|london|paris|senate|congress|ripper|alfred|hexar|d-bus)\b/i;
+const _BORING     = /\b(guide|handbook|tutorial|community|journal|future of|the way|how to|user guide|i am|iam|the way we)\b/i;
+const _ECHO       = /^(blog name like|creative blog|a creative|here'?s|one ml|give me|short ml|creative ml|ai for|the future)/i;
+const _GENERIC    = new Set(['machine learning','deep learning','ai','ml','autonomous vehicles','data science','predictive analytics','neural network','risk','python','tensorflow','pytorch']);
+
+function isPlausibleName(s, requireTwoWords) {
+  s = s.trim();
+  if (!s || s.length < 3 || s.length > 35) return false;
+  if (/^[A-Z]{3,}$/.test(s)) return false;
+  if (/^\d/.test(s)) return false;
+  if (/[<>&":]/.test(s)) return false;
+  if (/\d+\.\d+/.test(s)) return false;
+  const words = (s.match(/\S+/g) || []).length;
+  if (words > 4) return false;
+  if (requireTwoWords && words < 2) return false;
+  if (_BLOCKLIST.test(s)) return false;
+  if (_BORING.test(s)) return false;
+  if (_ECHO.test(s)) return false;
+  if (_GENERIC.has(s.toLowerCase())) return false;
+  return /[A-Za-z]/.test(s);
+}
+
+async function runNameCompletion(prompt, isInstruct) {
+  if (!modelReady) return null;
+  const params = getParams();
+  try {
+    const gen = await wllama.createCompletion({
+      prompt,
+      stream: true,
+      max_tokens: isInstruct ? 15 : 20,
+      temperature: 0.9,
+      top_k: 35,
+      top_p: 0.6,
+      stop: isInstruct ? ['"'] : ['"', '\n', ','],
+    });
+    let out = '';
+    for await (const chunk of gen) out += chunk.choices[0]?.text ?? '';
+    return out.trim();
+  } catch (e) {
+    addLog('name gen error: ' + e.message, 'err');
+    return null;
+  }
+}
+
+btnGenNames.addEventListener('click', async () => {
+  btnGenNames.disabled = true;
+  hideErr();
+
+  const m = selectedModel();
+  const isInstruct = m.type === 'instruct';
+  const prompts = isInstruct ? SMOL_NAME_PROMPTS : GPT2_NAME_PROMPTS;
+  const requireTwoWords = !isInstruct;
+
+  addLog(`Generating names with ${m.file} (${prompts.length} calls)…`);
+
+  const chipsEl = document.getElementById('chips');
+  let found = 0;
+
+  for (let i = 0; i < prompts.length; i++) {
+    btnGenNames.textContent = `Generating… (${i+1}/${prompts.length})`;
+    const raw = await runNameCompletion(prompts[i], isInstruct);
+    addLog(`  [${i+1}] raw: "${raw}"`, raw ? 'info' : 'warn');
+
+    if (raw && isPlausibleName(raw, requireTwoWords)) {
+      const chip = document.createElement('div');
+      chip.className = 'chip generated';
+      chip.innerHTML = `<span class="chip-dot"></span>${esc(raw)}`;
+      chipsEl.appendChild(chip);
+      addLog(`  ✓ "${raw}"`, 'ok');
+      found++;
+    } else if (raw) {
+      addLog(`  ✗ filtered: "${raw}"`, 'warn');
+    }
+  }
+
+  if (!found) addLog('No names passed filter this run — try regenerating', 'warn');
+  else addLog(`Added ${found} name${found > 1 ? 's' : ''}`, 'ok');
+
+  btnGenNames.disabled = false;
+  btnGenNames.textContent = '✦ Generate more names';
+});
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+addLog('wllama ESM module loaded from /assets/wllama/wllama.min.js', 'ok');
+</script>
+</body>
+</html>

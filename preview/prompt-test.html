@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>wllama prompt stress-test</title>
+  <style>
+    body { background:#0d0d0d; color:#e8e4df; font-family:'JetBrains Mono',monospace; font-size:12px; padding:1rem; margin:0; }
+    h2   { color:#CC785C; margin:.5rem 0; font-size:14px; }
+    .ctrl{ display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem; }
+    select,button { background:#1a1a1a; color:#e8e4df; border:1px solid #333; border-radius:4px; padding:.35rem .6rem; font-family:inherit; font-size:12px; cursor:pointer; }
+    button { background:#CC785C; color:#fff; border-color:#CC785C; }
+    button:disabled { background:#333; color:#666; border-color:#333; cursor:not-allowed; }
+    #status { color:#f5a623; margin-bottom:.5rem; }
+    #prog   { height:4px; background:#333; border-radius:2px; margin-bottom:.75rem; overflow:hidden; }
+    #prog-fill { height:100%; width:0; background:linear-gradient(90deg,#CC785C,#f5a623); transition:width .2s; }
+    table   { border-collapse:collapse; width:100%; }
+    th      { text-align:left; color:#CC785C; border-bottom:1px solid #333; padding:.3rem .5rem; font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+    td      { padding:.35rem .5rem; border-bottom:1px solid #1e1e1e; vertical-align:top; }
+    td.idx  { color:#555; width:1.8rem; }
+    td.prompt-col { color:#888; max-width:260px; word-break:break-word; white-space:pre-wrap; }
+    td.raw  { color:#a8d8a8; max-width:260px; word-break:break-word; white-space:pre-wrap; }
+    td.pass { color:#4caf50; }
+    td.fail { color:#f44336; }
+    td.skip { color:#888; font-style:italic; }
+    .section-row td { background:#1a1a1a; color:#CC785C; font-weight:bold; padding:.4rem .5rem; }
+    #copy-btn { margin-top:.75rem; }
+  </style>
+</head>
+<body>
+
+<h2>wllama prompt stress-test</h2>
+
+<div class="ctrl">
+  <select id="model-sel">
+    <optgroup label="GPT-2 117M (completion)">
+      <option value="gpt2-Q3_K_M|tensorblock/gpt2-GGUF|completion" selected>GPT-2 Q3_K_M ★</option>
+      <option value="gpt2-Q2_K|tensorblock/gpt2-GGUF|completion">GPT-2 Q2_K</option>
+    </optgroup>
+    <optgroup label="SmolLM2 135M (instruct)">
+      <option value="SmolLM2-135M-Instruct-Q3_K_L|lmstudio-community/SmolLM2-135M-Instruct-GGUF|instruct">SmolLM2 Q3_K_L ★</option>
+      <option value="SmolLM2-135M-Instruct-Q4_0|bartowski/SmolLM2-135M-Instruct-GGUF|instruct">SmolLM2 Q4_0</option>
+    </optgroup>
+  </select>
+  <button id="run-btn">▶ Load &amp; Run All Tests</button>
+  <span id="status">Idle</span>
+</div>
+<div id="prog"><div id="prog-fill"></div></div>
+
+<table id="results">
+  <thead><tr>
+    <th>#</th><th>Prompt (last 50 chars)</th><th>Stop</th><th>Raw output</th><th>Pass?</th><th>Reason</th>
+  </tr></thead>
+  <tbody id="tbody"></tbody>
+</table>
+
+<button id="copy-btn" disabled>Copy results as JSON</button>
+
+<script type="module">
+import { Wllama } from '/assets/wllama/wllama.min.js';
+
+/* ── Test cases ── */
+/* Each entry: { section, prompt, stop, maxTok, temp, topK, topP } */
+/* A "pass" means output is a plausible blog title: 2-40 chars, no version nums, ≤4 words */
+
+const BASE = {
+  temp: 0.9, topK: 35, topP: 0.6, maxTok: 20,
+};
+
+function tc(section, prompt, stop, overrides={}) {
+  return { section, prompt, stop, ...BASE, ...overrides };
+}
+
+/* ─── Completion-style prompts (good for GPT-2) ─── */
+const COMPLETION_TESTS = [
+  /* List-continuation – the core strategy */
+  tc('list-continuation · 4-item seed',
+    'ML research blogs: "Distill", "The Gradient", "Import AI", "Latent Space", "',
+    ['"','\n',',']),
+  tc('list-continuation · AV-themed seed',
+    'Autonomous vehicle research blogs: "Field Notes", "Road Signs", "Sensor Fusion", "The Lane", "',
+    ['"','\n',',']),
+  tc('list-continuation · 2-word focus',
+    'Two-word ML blog names: "Signal Notes", "Paper Trails", "Stack Traces", "Kernel Panic", "',
+    ['"','\n',',']),
+  tc('list-continuation · newsletter seed',
+    'Popular AI newsletters: "The Batch", "Import AI", "Last Week in AI", "Interconnects", "',
+    ['"','\n',',']),
+  tc('list-continuation · punchy seed',
+    'Punchy ML blog names: "The Pivot", "Loss Curve", "Deep Dive", "Grad Check", "',
+    ['"','\n',',']),
+  tc('list-continuation · long seed 6 items',
+    'ML blog names: "Distill", "The Gradient", "Latent Space", "Ahead of AI", "Signal Notes", "Paper Trails", "',
+    ['"','\n',',']),
+  /* Stop-at-comma variant (no open quote) */
+  tc('comma-list no-quote',
+    'Creative ML blog names: Signal Notes, Paper Trails, The Gradient, Kernel Panic, ',
+    ['\n',','], { maxTok:12 }),
+  /* Newline list */
+  tc('newline-list numbered',
+    'Blog names for ML engineers:\n1. Research Log\n2. Signal Notes\n3. ',
+    ['\n'], { maxTok:15 }),
+  tc('newline-list unnumbered',
+    'Short ML blog names:\n- The Gradient\n- Signal Notes\n- Kernel Panic\n- ',
+    ['\n'], { maxTok:15 }),
+  /* Temp sweep on best prompt */
+  tc('temp=0.6 list-continuation',
+    'ML research blogs: "Distill", "The Gradient", "Import AI", "Latent Space", "',
+    ['"','\n',','], { temp:0.6 }),
+  tc('temp=1.0 list-continuation',
+    'ML research blogs: "Distill", "The Gradient", "Import AI", "Latent Space", "',
+    ['"','\n',','], { temp:1.0 }),
+  tc('temp=1.2 list-continuation',
+    'ML research blogs: "Distill", "The Gradient", "Import AI", "Latent Space", "',
+    ['"','\n',','], { temp:1.2 }),
+  /* topP sweep */
+  tc('topP=0.9 list-continuation',
+    'ML research blogs: "Distill", "The Gradient", "Import AI", "Latent Space", "',
+    ['"','\n',','], { topP:0.9 }),
+  tc('topP=0.4 list-continuation',
+    'ML research blogs: "Distill", "The Gradient", "Import AI", "Latent Space", "',
+    ['"','\n',','], { topP:0.4 }),
+];
+
+/* ─── Instruct-style prompts (good for SmolLM2) ─── */
+/* SmolLM2 chat template: <|im_start|>role\ncontent<|im_end|>\n */
+const IM = (user, assistantPrefix='') =>
+  `<|im_start|>user\n${user}<|im_end|>\n<|im_start|>assistant\n${assistantPrefix}`;
+
+const INSTRUCT_TESTS = [
+  /* Direct single-name asks */
+  tc('instruct · single name ask quoted',
+    IM('Give me one creative 2-3 word blog name for an ML researcher. Just the name in quotes, nothing else.', '"'),
+    ['"'], { maxTok:15 }),
+  tc('instruct · single name ask bare',
+    IM('Give me one creative short blog name for an ML researcher. The name only.'),
+    ['\n','<|'], { maxTok:15 }),
+  tc('instruct · AV angle single',
+    IM('One short creative name for an autonomous vehicles research blog. Name only.'),
+    ['\n','<|'], { maxTok:15 }),
+  /* List asks */
+  tc('instruct · numbered list 5',
+    IM('List 5 creative 2-3 word blog names for an ML engineer. Numbers and names only.\n1.', ''),
+    ['<|'], { maxTok:60 }),
+  tc('instruct · bullet list',
+    IM('Give 5 short creative blog names for an AI researcher. Use bullet points.\n-', ''),
+    ['<|'], { maxTok:60 }),
+  /* Primed with examples */
+  tc('instruct · with examples',
+    IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name.'),
+    ['\n','<|'], { maxTok:15 }),
+  tc('instruct · with examples quoted',
+    IM('Blog name like "Signal Notes" or "Kernel Panic" for an ML researcher. One name in quotes.', '"'),
+    ['"'], { maxTok:15 }),
+  /* Constrained format */
+  tc('instruct · exactly two words',
+    IM('Give me exactly two words for an ML blog name. Two words only.'),
+    ['\n','<|'], { maxTok:10 }),
+  tc('instruct · AV + ML angle list',
+    IM('5 blog names for someone who works on autonomous vehicles and machine learning. Names only, numbered.', '1.'),
+    ['<|'], { maxTok:60 }),
+  /* Temp sweep on best instruct prompt */
+  tc('instruct temp=0.6',
+    IM('One short creative blog name for an ML researcher. Name only.'),
+    ['\n','<|'], { temp:0.6, maxTok:15 }),
+  tc('instruct temp=1.0',
+    IM('One short creative blog name for an ML researcher. Name only.'),
+    ['\n','<|'], { temp:1.0, maxTok:15 }),
+  tc('instruct temp=1.2',
+    IM('One short creative blog name for an ML researcher. Name only.'),
+    ['\n','<|'], { temp:1.2, maxTok:15 }),
+];
+
+/* ── Filter (same as production) ── */
+const GENERIC = new Set([
+  'machine learning','deep learning','artificial intelligence','ai','ml',
+  'autonomous vehicles','data science','predictive analytics','neural network',
+  'python','tensorflow','pytorch',
+]);
+function isPlausible(s) {
+  s = s.trim();
+  if (!s || s.length < 3 || s.length > 38) return [false, 'length'];
+  if (/^[A-Z]{3,}$/.test(s)) return [false, 'all-caps'];
+  if (/^\d/.test(s)) return [false, 'starts-digit'];
+  if (/[<>&]/.test(s)) return [false, 'html-char'];
+  if (/\d+\.\d+/.test(s)) return [false, 'version-num'];
+  if ((s.match(/\s/g)||[]).length > 3) return [false, 'too-many-words'];
+  if (/\b(guide|handbook|tutorial|user guide|community|journal|news|revolution|future of|the way|how to)\b/i.test(s)) return [false, 'boring-word'];
+  if (GENERIC.has(s.toLowerCase())) return [false, 'too-generic'];
+  if (!/[A-Za-z]/.test(s)) return [false, 'no-letter'];
+  return [true, ''];
+}
+
+/* ── UI helpers ── */
+const tbody   = document.getElementById('tbody');
+const statusEl= document.getElementById('status');
+const progFill= document.getElementById('prog-fill');
+const copyBtn = document.getElementById('copy-btn');
+const results = [];
+
+function setStatus(s) { statusEl.textContent = s; }
+function setProgress(n, total) { progFill.style.width = (n/total*100)+'%'; }
+
+let currentSection = null;
+function addSectionRow(label) {
+  if (label === currentSection) return;
+  currentSection = label;
+  const tr = document.createElement('tr');
+  tr.className = 'section-row';
+  tr.innerHTML = `<td colspan="6">${label}</td>`;
+  tbody.appendChild(tr);
+}
+
+function addRow(idx, tc, raw, pass, reason) {
+  addSectionRow(tc.section.split(' · ')[0]);
+  const tr = document.createElement('tr');
+  const shortPrompt = tc.prompt.slice(-50).replace(/</g,'&lt;');
+  const stopStr = JSON.stringify(tc.stop);
+  tr.innerHTML = `
+    <td class="idx">${idx}</td>
+    <td class="prompt-col">…${shortPrompt}</td>
+    <td style="color:#888;white-space:nowrap">${stopStr}</td>
+    <td class="raw">${(raw||'').replace(/</g,'&lt;') || '<em style="color:#555">empty</em>'}</td>
+    <td class="${pass?'pass':'fail'}">${pass?'✓':'✗'}</td>
+    <td class="${pass?'pass':reason?'fail':'skip'}">${reason||''}</td>`;
+  tbody.appendChild(tr);
+  results.push({ idx, prompt_tail: tc.prompt.slice(-50), stop: tc.stop, raw, pass, reason });
+}
+
+/* ── Main ── */
+document.getElementById('run-btn').addEventListener('click', async () => {
+  const runBtn = document.getElementById('run-btn');
+  runBtn.disabled = true;
+  tbody.innerHTML = '';
+  results.length = 0;
+  currentSection = null;
+  copyBtn.disabled = true;
+
+  const selVal = document.getElementById('model-sel').value;
+  const [file, repo, modelType] = selVal.split('|');
+  const url = `https://huggingface.co/${repo}/resolve/main/${file}.gguf`;
+  const tests = modelType === 'instruct' ? INSTRUCT_TESTS : COMPLETION_TESTS;
+
+  setStatus(`Loading ${file}…`);
+  setProgress(0, 1);
+
+  const wllama = new Wllama(
+    { default: '/assets/wllama/wllama.wasm' },
+    { logger: { debug:()=>{}, log:()=>{}, warn:()=>{}, error:()=>{} } }
+  );
+
+  try {
+    await wllama.loadModelFromUrl(url, {
+      n_ctx: 512,
+      n_gpu_layers: 0,
+      n_threads: Math.min(navigator.hardwareConcurrency ?? 2, 4),
+      progressCallback: ({ loaded, total }) => {
+        if (total > 0) setProgress(loaded, total);
+        setStatus(`Downloading… ${total>0?Math.round(loaded/total*100)+'%':'?'}`);
+      },
+    });
+    setStatus(`${file} ready — running ${tests.length} tests…`);
+    setProgress(1,1);
+  } catch (e) {
+    setStatus('Load failed: ' + e.message);
+    runBtn.disabled = false;
+    return;
+  }
+
+  for (let i = 0; i < tests.length; i++) {
+    const tc = tests[i];
+    setStatus(`Test ${i+1}/${tests.length}: ${tc.section}`);
+    let raw = null;
+    try {
+      const gen = await wllama.createCompletion({
+        prompt: tc.prompt,
+        stream: true,
+        max_tokens: tc.maxTok,
+        temperature: tc.temp,
+        top_k: tc.topK,
+        top_p: tc.topP,
+        stop: tc.stop,
+      });
+      raw = '';
+      for await (const chunk of gen) raw += chunk.choices[0]?.text ?? '';
+      raw = raw.trim();
+    } catch(e) { raw = '[ERR: '+e.message+']'; }
+    const [pass, reason] = isPlausible(raw);
+    addRow(i+1, tc, raw, pass, reason);
+  }
+
+  setStatus(`Done — ${results.filter(r=>r.pass).length}/${tests.length} passed`);
+  await wllama.exit();
+  copyBtn.disabled = false;
+  runBtn.disabled = false;
+});
+
+copyBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(JSON.stringify(results, null, 2));
+  copyBtn.textContent = 'Copied!';
+  setTimeout(() => copyBtn.textContent = 'Copy results as JSON', 1500);
+});
+</script>
+</body>
+</html>
